@@ -174,6 +174,13 @@ func TestGetJobsHTMXTriggerIsPollingOnly(t *testing.T) {
 	if !strings.Contains(body, `hx-target="#job-tbody"`) {
 		t.Fatal("delete request must replace the paginated job body")
 	}
+
+	// HTMX parses a response starting with <tbody> inside a <table>. A non-table
+	// out-of-band element (e.g. a <div>) gets hoisted out by the HTML parser and
+	// swapped in place of the tbody, which removes #job-tbody from the page.
+	if !strings.Contains(body, `<tfoot id="pagination-container" hx-swap-oob="true">`) {
+		t.Fatal("pagination out-of-band swap must use a table element so the tbody survives parsing")
+	}
 }
 
 func TestIndexScrapeFormReplacesPaginatedJobs(t *testing.T) {
@@ -190,6 +197,10 @@ func TestIndexScrapeFormReplacesPaginatedJobs(t *testing.T) {
 
 	if !strings.Contains(body, `hx-swap="outerHTML"`) {
 		t.Fatal("scrape form must replace the paginated job body")
+	}
+
+	if !strings.Contains(body, `<tfoot id="pagination-container"></tfoot>`) {
+		t.Fatal("pagination container must live inside the job table")
 	}
 }
 

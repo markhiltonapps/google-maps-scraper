@@ -30,8 +30,10 @@
 {{end}}
 </tbody>
 
-<div id="pagination-container" hx-swap-oob="true">
+<tfoot id="pagination-container" hx-swap-oob="true">
     {{if .HasPages}}
+    <tr class="pagination-row">
+    <td colspan="5" style="border-bottom: none;">
     <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1rem;">
         {{if .HasPrev}}
         <button class="button" hx-get="/jobs?page={{.PrevPage}}" hx-target="#job-tbody" hx-swap="outerHTML">Previous</button>
@@ -45,7 +47,7 @@
         <button class="button" disabled style="opacity: 0.5; cursor: not-allowed;">Next</button>
         {{end}}
     </div>
-    {{else}}
-    <div style="display: none;"></div>
+    </td>
+    </tr>
     {{end}}
-</div>
+</tfoot>
