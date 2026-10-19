@@ -13,7 +13,8 @@
                     hx-get="/view?id={{.ID}}"
                     hx-target="#map-modal-container"
                     hx-swap="innerHTML">View</button>
-            <a href="/download?id={{.ID}}" download class="button download-button">Download</a>
+            <a href="/download?id={{.ID}}&format=leads" download class="button download-button" title="Short spreadsheet: name, phone, website, email, AI chat">Download Leads</a>
+            <a href="/download?id={{.ID}}" download class="button download-button" title="Every field the scraper collected">Full Data</a>
         {{ end }}
         <button hx-delete="/delete?id={{.ID}}&page={{$.CurrentPage}}"
                 hx-target="#job-tbody"

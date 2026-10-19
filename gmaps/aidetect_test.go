@@ -73,6 +73,27 @@ func TestDetectAITools(t *testing.T) {
 			wantAIChat: gmaps.AIChatNo,
 		},
 		{
+			name: "RevenueWell AI chat as seen on a dental site",
+			html: `<html><body><script src="https://aichatbotweb.revenuewell.com/rw-chat.js"></script>` +
+				`<iframe src="https://aichatbotweb.revenuewell.com/?oid=0013600001EUEB7AAP"></iframe></body></html>`,
+			wantWidgets: []string{"RevenueWell AI Chat"},
+			wantAIChat:  gmaps.AIChatYes,
+		},
+		{
+			name: "unrecognized chat vendor is reported once per host",
+			html: `<html><body><script src="https://cdn.dentalchat.example/chatbot/loader.js"></script>` +
+				`<iframe src="https://cdn.dentalchat.example/chatbot/frame.html"></iframe>` +
+				`<script src="https://cdn.example.com/analytics.js"></script></body></html>`,
+			wantWidgets: []string{"Other chat (cdn.dentalchat.example)"},
+			wantAIChat:  gmaps.AIChatPossible,
+		},
+		{
+			name:        "known vendor URL is not double counted as unrecognized",
+			html:        `<html><body><script src="https://cdn.livechatinc.com/tracking.js"></script></body></html>`,
+			wantWidgets: []string{"LiveChat"},
+			wantAIChat:  gmaps.AIChatNo,
+		},
+		{
 			name:       "plain link to vendor homepage is not a chat widget",
 			html:       `<html><body><a href="https://www.intercom.com">We love Intercom</a></body></html>`,
 			wantAIChat: gmaps.AIChatNo,

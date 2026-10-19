@@ -2,6 +2,7 @@ package gmaps
 
 import (
 	"bytes"
+	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -63,6 +64,19 @@ var chatVendors = []chatVendor{
 	{name: "Chatbase", kind: chatVendorAINative, patterns: []string{"chatbase.co/embed"}, globals: []string{"chatbase"}},
 	{name: "Voiceflow", kind: chatVendorAINative, patterns: []string{"cdn.voiceflow.com"}, globals: []string{"voiceflow"}},
 	{name: "Botpress", kind: chatVendorAINative, patterns: []string{"cdn.botpress.cloud"}, globals: []string{"botpress", "botpressWebChat"}},
+	{name: "RevenueWell AI Chat", kind: chatVendorAINative, patterns: []string{"aichatbotweb.revenuewell.com"}, globals: []string{"RwChat"}},
+}
+
+// genericChatURLKeywords flag script/iframe URLs that look like a chat widget
+// from a vendor not listed above, such as industry-specific marketing tools.
+var genericChatURLKeywords = []string{
+	"chatbot",
+	"aichat",
+	"ai-chat",
+	"chat-widget",
+	"chatwidget",
+	"webchat",
+	"livechat",
 }
 
 // aiPhoneVendorDomains are AI receptionist / voice agent providers. A link,
@@ -121,7 +135,8 @@ func DetectAITools(html []byte, globals []string) AIToolsResult {
 		return result
 	}
 
-	resources := collectResources(doc)
+	resourceURLs, inlineCode := collectResources(doc)
+	resources := strings.Join(resourceURLs, "\n") + "\n" + inlineCode
 	links := collectLinks(doc)
 	text := visibleText(doc)
 
@@ -142,6 +157,15 @@ func DetectAITools(html []byte, globals []string) AIToolsResult {
 
 		if int(vendor.kind) > best {
 			best = int(vendor.kind)
+		}
+	}
+
+	// An unrecognized chat widget may or may not use AI.
+	for _, host := range unknownChatHosts(resourceURLs) {
+		result.ChatWidgets = append(result.ChatWidgets, "Other chat ("+host+")")
+
+		if int(chatVendorAICapable) > best {
+			best = int(chatVendorAICapable)
 		}
 	}
 
@@ -176,8 +200,36 @@ func vendorPresent(vendor *chatVendor, resources string, globals map[string]bool
 		}
 	}
 
-	for _, p := range vendor.patterns {
-		if strings.Contains(resources, p) {
+	return containsAny(resources, vendor.patterns)
+}
+
+// unknownChatHosts returns the hosts of script/iframe URLs that look like a
+// chat widget but match no known vendor.
+func unknownChatHosts(resourceURLs []string) []string {
+	var hosts []string
+
+	seen := map[string]bool{}
+
+	for _, raw := range resourceURLs {
+		if knownVendorURL(raw) || !containsAny(raw, genericChatURLKeywords) {
+			continue
+		}
+
+		u, err := url.Parse(raw)
+		if err != nil || u.Host == "" || seen[u.Host] {
+			continue
+		}
+
+		seen[u.Host] = true
+		hosts = append(hosts, u.Host)
+	}
+
+	return hosts
+}
+
+func knownVendorURL(raw string) bool {
+	for i := range chatVendors {
+		if containsAny(raw, chatVendors[i].patterns) {
 			return true
 		}
 	}
@@ -185,25 +237,35 @@ func vendorPresent(vendor *chatVendor, resources string, globals map[string]bool
 	return false
 }
 
-// collectResources returns script/iframe URLs and inline script code, lowercased.
-func collectResources(doc *goquery.Document) string {
-	var sb strings.Builder
+func containsAny(s string, needles []string) bool {
+	for _, n := range needles {
+		if strings.Contains(s, n) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// collectResources returns script/iframe/link URLs and inline script code,
+// lowercased.
+func collectResources(doc *goquery.Document) (urls []string, inlineCode string) {
+	var code strings.Builder
 
 	doc.Find("script, iframe, link").Each(func(_ int, s *goquery.Selection) {
 		for _, attr := range []string{"src", "href", "data-src"} {
-			if v, ok := s.Attr(attr); ok {
-				sb.WriteString(v)
-				sb.WriteByte('\n')
+			if v, ok := s.Attr(attr); ok && v != "" {
+				urls = append(urls, strings.ToLower(v))
 			}
 		}
 
 		if goquery.NodeName(s) == "script" {
-			sb.WriteString(s.Text())
-			sb.WriteByte('\n')
+			code.WriteString(s.Text())
+			code.WriteByte('\n')
 		}
 	})
 
-	return strings.ToLower(sb.String())
+	return urls, strings.ToLower(code.String())
 }
 
 // collectLinks returns anchor hrefs, lowercased.

@@ -456,6 +456,23 @@ func (s *Server) download(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	fileName := filepath.Base(filePath)
+
+	if r.URL.Query().Get("format") == leadsFormat {
+		// Convert fully before writing so a failure can still return an error status.
+		var leads bytes.Buffer
+		if err := writeLeadsCSV(&leads, file); err != nil {
+			http.Error(w, "Failed to build leads file", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", strings.TrimSuffix(fileName, ".csv")+"-leads.csv"))
+		w.Header().Set("Content-Type", "text/csv")
+
+		_, _ = leads.WriteTo(w)
+
+		return
+	}
+
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
 	w.Header().Set("Content-Type", "text/csv")
 

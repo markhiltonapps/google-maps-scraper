@@ -20,7 +20,7 @@ const (
 
 	// chatWidgetSettleTime gives chat widgets, which are usually injected by
 	// JavaScript after the page has loaded, time to appear in the DOM.
-	chatWidgetSettleTime = 3 * time.Second
+	chatWidgetSettleTime = 4 * time.Second
 
 	// presentGlobalsJS returns which of the given names are defined on window.
 	presentGlobalsJS = `(names) => names.filter((n) => {
@@ -102,10 +102,26 @@ func WithoutEmailExtraction() EmailExtractJobOptions {
 // page, since most chat widgets are injected by JavaScript and are missing
 // from the HTML the server sends.
 func (j *EmailExtractJob) BrowserActions(ctx context.Context, page scrapemate.BrowserPage) scrapemate.Response {
-	resp := j.Job.BrowserActions(ctx, page)
-	if !j.DetectAITools || resp.Error != nil {
+	if !j.DetectAITools {
+		return j.Job.BrowserActions(ctx, page)
+	}
+
+	var resp scrapemate.Response
+
+	// Wait for "load" plus a fixed settle time instead of network idle: chat
+	// widgets often keep connections open, so pages that have one may never
+	// become idle and would time out.
+	pageResponse, err := page.Goto(j.GetFullURL(), scrapemate.WaitUntilLoad)
+	if err != nil {
+		resp.Error = err
+
 		return resp
 	}
+
+	resp.URL = pageResponse.URL
+	resp.StatusCode = pageResponse.StatusCode
+	resp.Headers = pageResponse.Headers
+	resp.Body = pageResponse.Body
 
 	page.WaitForTimeout(chatWidgetSettleTime)
 
@@ -142,6 +158,10 @@ func (j *EmailExtractJob) Process(ctx context.Context, resp *scrapemate.Response
 	log.Info("Processing email job", "url", j.URL)
 
 	if j.DetectAITools {
+		if resp.Error != nil {
+			log.Warn("Website fetch failed, AI tools unknown", "url", j.URL, "error", resp.Error)
+		}
+
 		j.detectAITools(resp)
 	}
 
