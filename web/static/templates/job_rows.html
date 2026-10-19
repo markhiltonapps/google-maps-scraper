@@ -18,12 +18,16 @@
     <td class="cell-actions">
         <div class="actions">
         {{ if eq .Status "ok" }}
-            <a href="/download?id={{.ID}}&format=leads" download class="btn btn-primary btn-sm" title="Short spreadsheet: name, phone, website, email, AI chat">Download leads</a>
-            <a href="/download?id={{.ID}}" download class="btn btn-secondary btn-sm" title="Every field the scraper collected">Full data</a>
+            <button type="button" class="btn btn-primary btn-sm"
+                    hx-get="/preview?id={{.ID}}"
+                    hx-target="#map-modal-container"
+                    hx-swap="innerHTML">Preview</button>
+            <a href="/download?id={{.ID}}&format=leads" download class="btn btn-secondary btn-sm" title="Short spreadsheet: name, phone, website, email, AI chat">Download leads</a>
             <button type="button" class="btn btn-secondary btn-sm"
                     hx-get="/view?id={{.ID}}"
                     hx-target="#map-modal-container"
                     hx-swap="innerHTML">Map</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-copy-link="/share/{{.ID}}" title="Copy a link anyone can open to view and download these results">Share</button>
         {{ end }}
             <button hx-delete="/delete?id={{.ID}}&page={{$.CurrentPage}}"
                     hx-target="#job-tbody"

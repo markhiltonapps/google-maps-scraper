@@ -14,6 +14,12 @@ import (
 // spreadsheet instead of the full scrape output.
 const leadsFormat = "leads"
 
+// Display values used in the leads spreadsheet.
+const (
+	leadsYes = "Yes"
+	leadsNo  = "No"
+)
+
 type leadsColumn struct {
 	header string
 	value  func(row map[string]string) string
@@ -27,10 +33,10 @@ var leadsColumns = []leadsColumn{
 	{header: "Phone", value: field("phone")},
 	{header: "Has Website", value: func(row map[string]string) string {
 		if row["website"] == "" {
-			return "No"
+			return leadsNo
 		}
 
-		return "Yes"
+		return leadsYes
 	}},
 	{header: "Website", value: func(row map[string]string) string { return stripTrackingParams(row["website"]) }},
 	{header: "Email", value: field("emails")},
@@ -48,9 +54,9 @@ func field(name string) func(map[string]string) string {
 }
 
 var friendlyAIChatValues = map[string]string{
-	"yes":         "Yes",
+	"yes":         leadsYes,
 	"possible":    "Possibly (chat tool with optional AI)",
-	"no":          "No",
+	"no":          leadsNo,
 	"unknown":     "Couldn't check (website didn't load)",
 	"no website":  "No website",
 	"not checked": "Not checked (social media page)",
@@ -94,15 +100,29 @@ func stripTrackingParams(raw string) string {
 	return u.String()
 }
 
-// writeLeadsCSV converts a full results CSV into the short leads format.
-func writeLeadsCSV(dst io.Writer, src io.Reader) error {
+// leadsTable is a results CSV converted to the short leads format.
+type leadsTable struct {
+	Headers []string
+	Rows    [][]string
+	// Total counts every row, including any beyond the row limit.
+	Total int
+}
+
+// Truncated reports whether rows were left out because of the row limit.
+func (t leadsTable) Truncated() bool {
+	return len(t.Rows) < t.Total
+}
+
+// buildLeads converts a full results CSV into the short leads format,
+// keeping at most maxRows rows (all rows when maxRows <= 0).
+func buildLeads(src io.Reader, maxRows int) (leadsTable, error) {
 	reader := csv.NewReader(src)
 
 	headers, err := reader.Read()
 	if errors.Is(err, io.EOF) {
 		headers = nil
 	} else if err != nil {
-		return fmt.Errorf("read header: %w", err)
+		return leadsTable{}, fmt.Errorf("read header: %w", err)
 	}
 
 	hasAIColumns := false
@@ -123,15 +143,9 @@ func writeLeadsCSV(dst io.Writer, src io.Reader) error {
 		columns = append(columns, c)
 	}
 
-	writer := csv.NewWriter(dst)
-
-	out := make([]string, len(columns))
+	table := leadsTable{Headers: make([]string, len(columns))}
 	for i, c := range columns {
-		out[i] = c.header
-	}
-
-	if err := writer.Write(out); err != nil {
-		return fmt.Errorf("write header: %w", err)
+		table.Headers[i] = c.header
 	}
 
 	for {
@@ -141,7 +155,13 @@ func writeLeadsCSV(dst io.Writer, src io.Reader) error {
 		}
 
 		if err != nil {
-			return fmt.Errorf("read row: %w", err)
+			return leadsTable{}, fmt.Errorf("read row: %w", err)
+		}
+
+		table.Total++
+
+		if maxRows > 0 && len(table.Rows) >= maxRows {
+			continue
 		}
 
 		row := make(map[string]string, len(headers))
@@ -151,16 +171,33 @@ func writeLeadsCSV(dst io.Writer, src io.Reader) error {
 			}
 		}
 
+		out := make([]string, len(columns))
 		for i, c := range columns {
 			out[i] = c.value(row)
 		}
 
-		if err := writer.Write(out); err != nil {
-			return fmt.Errorf("write row: %w", err)
-		}
+		table.Rows = append(table.Rows, out)
 	}
 
-	writer.Flush()
+	return table, nil
+}
+
+// writeLeadsCSV converts a full results CSV into the short leads format.
+func writeLeadsCSV(dst io.Writer, src io.Reader) error {
+	table, err := buildLeads(src, 0)
+	if err != nil {
+		return err
+	}
+
+	writer := csv.NewWriter(dst)
+
+	if err := writer.Write(table.Headers); err != nil {
+		return fmt.Errorf("write header: %w", err)
+	}
+
+	if err := writer.WriteAll(table.Rows); err != nil {
+		return fmt.Errorf("write rows: %w", err)
+	}
 
 	return writer.Error()
 }

@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -75,6 +76,16 @@ func New(svc *Service, addr string) (*Server, error) {
 		r = requestWithID(r)
 
 		ans.viewJob(w, r)
+	})
+	mux.HandleFunc("/preview", func(w http.ResponseWriter, r *http.Request) {
+		r = requestWithID(r)
+
+		ans.previewJob(w, r)
+	})
+	mux.HandleFunc("/share/{id}", func(w http.ResponseWriter, r *http.Request) {
+		r = requestWithID(r)
+
+		ans.shareJob(w, r)
 	})
 	mux.HandleFunc("/", ans.index)
 
@@ -144,6 +155,18 @@ func New(svc *Service, addr string) (*Server, error) {
 
 	for _, key := range tmplsKeys {
 		tmp, err := template.ParseFS(static, key)
+		if err != nil {
+			return nil, err
+		}
+
+		ans.tmpl[key] = tmp
+	}
+
+	// The results pages share the leads table partial.
+	for _, key := range []string{"static/templates/preview.html", "static/templates/share.html"} {
+		tmp, err := template.New(path.Base(key)).
+			Funcs(resultsTemplateFuncs).
+			ParseFS(static, key, "static/templates/leads_table.html")
 		if err != nil {
 			return nil, err
 		}

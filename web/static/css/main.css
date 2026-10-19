@@ -1017,3 +1017,245 @@ tbody tr:not(.empty-row):hover td {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* ---------- Results tables (preview + share page) ---------- */
+.results-modal-content {
+    width: min(1400px, 100%);
+}
+
+.results-header {
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.results-heading {
+    min-width: 0;
+}
+
+.results-heading .subtle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.results-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.results-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.results-body > .empty-state {
+    margin: auto;
+}
+
+.leads-panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.leads-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+input.leads-filter {
+    max-width: 320px;
+    padding: 7px 12px;
+    font: inherit;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+}
+
+input.leads-filter:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.leads-count {
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.leads-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.leads-table {
+    /* Size columns to their content and scroll sideways, rather than
+       squeezing columns until text wraps into very tall rows. */
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.leads-table th {
+    white-space: nowrap;
+    font-size: 11.5px;
+}
+
+.leads-table td {
+    padding: 10px 14px;
+    vertical-align: top;
+}
+
+.leads-table tbody tr:hover td {
+    background: var(--surface-muted);
+}
+
+.leads-table .col-name {
+    min-width: 180px;
+    max-width: 280px;
+    font-weight: 600;
+}
+
+.leads-table .col-address {
+    min-width: 240px;
+    max-width: 340px;
+}
+
+.leads-table .col-website {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.leads-table a {
+    text-decoration: none;
+}
+
+.leads-table a:hover {
+    text-decoration: underline;
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+.muted {
+    color: var(--text-subtle);
+}
+
+.pill {
+    display: inline-block;
+    padding: 2px 9px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.pill-yes {
+    color: var(--ok);
+    background: var(--ok-soft);
+}
+
+.pill-maybe {
+    color: var(--wait);
+    background: var(--wait-soft);
+}
+
+.pill-no {
+    color: var(--text-muted);
+    background: var(--surface-muted);
+}
+
+.pill-neutral {
+    color: var(--text-muted);
+    background: var(--surface-muted);
+}
+
+.leads-empty,
+.leads-nomatch {
+    padding: 40px 16px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.leads-note {
+    padding: 10px 16px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+}
+
+/* ---------- Public share page ---------- */
+body.share-page {
+    overflow: auto;
+}
+
+.share-main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 28px 32px 48px;
+}
+
+.share-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.share-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.share-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+body.share-page .topbar {
+    height: var(--topbar-h);
+}
+
+/* The table scrolls inside the card so wide results can scroll sideways
+   while the header row stays visible. */
+.share-card .leads-scroll {
+    max-height: calc(100vh - 230px);
+    min-height: 240px;
+}
+
+@media (max-width: 900px) {
+    .results-header {
+        flex-direction: column;
+    }
+
+    .results-actions {
+        justify-content: flex-start;
+    }
+
+    .share-main {
+        padding: 20px 16px 32px;
+    }
+
+    .share-card .leads-scroll {
+        max-height: 75vh;
+    }
+}

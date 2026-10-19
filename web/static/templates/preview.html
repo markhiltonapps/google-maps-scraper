@@ -1,0 +1,29 @@
+<div id="results-modal" class="map-modal" role="dialog" aria-modal="true" aria-labelledby="results-title" onclick="if(event.target===this)closeResults()">
+    <div class="map-modal-content results-modal-content">
+        <div class="map-modal-header results-header">
+            <div class="results-heading">
+                <h2 id="results-title">{{.Title}}</h2>
+                {{if .Terms}}<p class="subtle">{{.Terms}}</p>{{end}}
+            </div>
+            <div class="results-actions">
+                {{if .Ready}}
+                <button type="button" class="btn btn-secondary btn-sm" data-copy-link="{{.SharePath}}">Copy share link</button>
+                <a class="btn btn-secondary btn-sm" href="{{.SharePath}}" target="_blank" rel="noopener">Open share page</a>
+                <a class="btn btn-secondary btn-sm" href="/download?id={{.Job.ID}}" download title="Every field the scraper collected">Full data</a>
+                <a class="btn btn-primary btn-sm" href="/download?id={{.Job.ID}}&format=leads" download>Download leads</a>
+                {{end}}
+                <button type="button" class="map-modal-close" aria-label="Close" onclick="closeResults()">&times;</button>
+            </div>
+        </div>
+        <div class="results-body">
+            {{if .Ready}}
+                {{template "leads-table" .Table}}
+            {{else}}
+                <div class="empty-state">
+                    <p class="empty-title">No results yet</p>
+                    <p class="empty-desc">Results appear here once the search is done.</p>
+                </div>
+            {{end}}
+        </div>
+    </div>
+</div>

@@ -1,0 +1,35 @@
+{{define "leads-table"}}
+<div class="leads-panel" data-leads-panel>
+    <div class="leads-toolbar">
+        <input type="search" class="leads-filter" placeholder="Search these results" aria-label="Search these results" data-leads-filter>
+        <span class="leads-count" data-leads-count data-total="{{len .Rows}}">{{len .Rows}} {{if eq (len .Rows) 1}}business{{else}}businesses{{end}}</span>
+    </div>
+    <div class="leads-scroll">
+        <table class="leads-table">
+            <thead>
+                <tr>{{range .Headers}}<th scope="col">{{.}}</th>{{end}}</tr>
+            </thead>
+            <tbody>
+            {{range .Rows}}
+                <tr>
+                {{range $i, $v := .}}{{$h := index $.Headers $i}}
+                    {{if eq $h "Website"}}<td class="col-website">{{if $v}}<a href="{{$v}}" target="_blank" rel="noopener noreferrer nofollow">{{displayURL $v}}</a>{{else}}<span class="muted">—</span>{{end}}</td>
+                    {{else if eq $h "Google Maps Link"}}<td>{{if $v}}<a href="{{$v}}" target="_blank" rel="noopener noreferrer nofollow">Open map</a>{{end}}</td>
+                    {{else if eq $h "AI Chat on Website"}}<td>{{if $v}}<span class="pill {{aiChatClass $v}}">{{$v}}</span>{{end}}</td>
+                    {{else if eq $h "Has Website"}}<td>{{if eq $v "No"}}<span class="pill pill-no">No</span>{{else}}{{$v}}{{end}}</td>
+                    {{else if eq $h "Business Name"}}<td class="col-name">{{$v}}</td>
+                    {{else if eq $h "Address"}}<td class="col-address">{{$v}}</td>
+                    {{else if or (eq $h "Phone") (eq $h "Rating") (eq $h "Reviews")}}<td class="nowrap">{{$v}}</td>
+                    {{else}}<td>{{$v}}</td>{{end}}
+                {{end}}
+                </tr>
+            {{else}}
+                <tr><td colspan="{{len .Headers}}" class="leads-empty">This search found no businesses.</td></tr>
+            {{end}}
+            </tbody>
+        </table>
+        <p class="leads-nomatch" data-leads-nomatch hidden>No businesses match your search.</p>
+    </div>
+    {{if .Truncated}}<p class="leads-note">Showing the first {{len .Rows}} of {{.Total}} businesses. Download the CSV to get all of them.</p>{{end}}
+</div>
+{{end}}
