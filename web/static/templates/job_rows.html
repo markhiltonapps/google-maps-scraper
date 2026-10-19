@@ -1,32 +1,49 @@
 <tbody id="job-tbody" hx-get="/jobs?page={{.CurrentPage}}" hx-trigger="every 10s" hx-swap="outerHTML">
 {{range .Jobs}}
 <tr>
-    <td>{{.ID}}</td>
-    <td>{{.Name}}</td>
-    <td>{{.Date}}</td>
-    <td>
-        <span class="status-indicator status-{{.Status}}">{{.Status}}</span>
+    <td class="cell-search">
+        <div class="job-name">{{if .Name}}{{.Name}}{{else}}Untitled search{{end}}</div>
+        <div class="job-terms">{{range $i, $k := .Data.Keywords}}{{if $i}} · {{end}}{{$k}}{{end}}</div>
+        <div class="job-id" title="Job ID: {{.ID}}">{{.ID}}</div>
     </td>
-    <td>
+    <td class="cell-date">
+        <time datetime="{{.Date.Format "2006-01-02T15:04:05Z07:00"}}">{{.Date.Format "Jan 2, 15:04 UTC"}}</time>
+    </td>
+    <td class="cell-status">
+        <span class="status status-{{.Status}}">
+            <span class="status-dot" aria-hidden="true"></span>
+            {{- if eq .Status "ok"}}Done{{else if eq .Status "working"}}Running{{else if eq .Status "pending"}}Queued{{else if eq .Status "failed"}}Failed{{else}}{{.Status}}{{end -}}
+        </span>
+    </td>
+    <td class="cell-actions">
+        <div class="actions">
         {{ if eq .Status "ok" }}
-            <button type="button" class="button view-button"
+            <a href="/download?id={{.ID}}&format=leads" download class="btn btn-primary btn-sm" title="Short spreadsheet: name, phone, website, email, AI chat">Download leads</a>
+            <a href="/download?id={{.ID}}" download class="btn btn-secondary btn-sm" title="Every field the scraper collected">Full data</a>
+            <button type="button" class="btn btn-secondary btn-sm"
                     hx-get="/view?id={{.ID}}"
                     hx-target="#map-modal-container"
-                    hx-swap="innerHTML">View</button>
-            <a href="/download?id={{.ID}}&format=leads" download class="button download-button" title="Short spreadsheet: name, phone, website, email, AI chat">Download Leads</a>
-            <a href="/download?id={{.ID}}" download class="button download-button" title="Every field the scraper collected">Full Data</a>
+                    hx-swap="innerHTML">Map</button>
         {{ end }}
-        <button hx-delete="/delete?id={{.ID}}&page={{$.CurrentPage}}"
-                hx-target="#job-tbody"
-                hx-swap="outerHTML"
-                hx-confirm="Are you sure you want to delete this job?"
-                class="delete-button">Delete</button>
+            <button hx-delete="/delete?id={{.ID}}&page={{$.CurrentPage}}"
+                    hx-target="#job-tbody"
+                    hx-swap="outerHTML"
+                    hx-confirm="Delete this search and its results?"
+                    class="btn btn-icon btn-danger-ghost btn-sm" title="Delete" aria-label="Delete {{if .Name}}{{.Name}}{{else}}search{{end}}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            </button>
+        </div>
     </td>
 </tr>
 {{end}}
 {{if eq (len .Jobs) 0}}
-<tr>
-    <td colspan="5" style="text-align: center; padding: 1rem;">0 results</td>
+<tr class="empty-row">
+    <td colspan="4">
+        <div class="empty-state">
+            <p class="empty-title">No searches yet</p>
+            <p class="empty-desc">Enter search terms on the left and press <strong>Start search</strong>.</p>
+        </div>
+    </td>
 </tr>
 {{end}}
 </tbody>
@@ -34,18 +51,18 @@
 <tfoot id="pagination-container" hx-swap-oob="true">
     {{if .HasPages}}
     <tr class="pagination-row">
-    <td colspan="5" style="border-bottom: none;">
-    <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1rem;">
+    <td colspan="4">
+    <div class="pagination">
         {{if .HasPrev}}
-        <button class="button" hx-get="/jobs?page={{.PrevPage}}" hx-target="#job-tbody" hx-swap="outerHTML">Previous</button>
+        <button class="btn btn-secondary btn-sm" hx-get="/jobs?page={{.PrevPage}}" hx-target="#job-tbody" hx-swap="outerHTML">Previous</button>
         {{else}}
-        <button class="button" disabled style="opacity: 0.5; cursor: not-allowed;">Previous</button>
+        <button class="btn btn-secondary btn-sm" disabled>Previous</button>
         {{end}}
         <span class="page-info">Page {{.CurrentPage}} of {{.TotalPages}}</span>
         {{if .HasNext}}
-        <button class="button" hx-get="/jobs?page={{.NextPage}}" hx-target="#job-tbody" hx-swap="outerHTML">Next</button>
+        <button class="btn btn-secondary btn-sm" hx-get="/jobs?page={{.NextPage}}" hx-target="#job-tbody" hx-swap="outerHTML">Next</button>
         {{else}}
-        <button class="button" disabled style="opacity: 0.5; cursor: not-allowed;">Next</button>
+        <button class="btn btn-secondary btn-sm" disabled>Next</button>
         {{end}}
     </div>
     </td>
