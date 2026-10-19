@@ -26,6 +26,8 @@ var static embed.FS
 const (
 	jobsPageLimit           = 20
 	methodNotAllowedMessage = "Method not allowed"
+	// checkboxOn is the form value browsers send for a checked checkbox.
+	checkboxOn = "on"
 )
 
 type Server struct {
@@ -191,6 +193,7 @@ type formData struct {
 	Lon      string
 	Depth    int
 	Email    bool
+	DetectAI bool
 	Proxies  []string
 }
 
@@ -324,7 +327,7 @@ func (s *Server) scrape(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Form.Get("fastmode") == "on" {
+	if r.Form.Get("fastmode") == checkboxOn {
 		newJob.Data.FastMode = true
 	}
 
@@ -345,7 +348,8 @@ func (s *Server) scrape(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newJob.Data.Email = r.Form.Get("email") == "on"
+	newJob.Data.Email = r.Form.Get("email") == checkboxOn
+	newJob.Data.DetectAITools = r.Form.Get("detectai") == checkboxOn
 
 	proxies := strings.Split(r.Form.Get("proxies"), "\n")
 	if len(proxies) > 0 {

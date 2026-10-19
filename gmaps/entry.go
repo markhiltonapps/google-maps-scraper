@@ -131,6 +131,12 @@ type Entry struct {
 	UserReviews         []Review     `json:"user_reviews"`
 	UserReviewsExtended []Review     `json:"user_reviews_extended"`
 	Emails              []string     `json:"emails"`
+	// ChatWidgets, AIChat and AIPhoneSignals are filled when AI tools
+	// detection is enabled; see DetectAITools. They are omitted from JSON
+	// otherwise so existing output is unchanged.
+	ChatWidgets    []string `json:"chat_widgets,omitempty"`
+	AIChat         string   `json:"ai_chat,omitempty"`
+	AIPhoneSignals []string `json:"ai_phone_signals,omitempty"`
 }
 
 // entryAlias is used inside Marshal/UnmarshalJSON to avoid infinite recursion
@@ -233,7 +239,7 @@ func (e *Entry) Validate() error {
 }
 
 func (e *Entry) CsvHeaders() []string {
-	return []string{
+	headers := []string{
 		"input_id",
 		"link",
 		"title",
@@ -271,10 +277,16 @@ func (e *Entry) CsvHeaders() []string {
 		"user_reviews_extended",
 		"emails",
 	}
+
+	if e.hasAIToolsData() {
+		headers = append(headers, "chat_widgets", "ai_chat", "ai_phone_signals")
+	}
+
+	return headers
 }
 
 func (e *Entry) CsvRow() []string {
-	return []string{
+	row := []string{
 		e.ID,
 		e.Link,
 		e.Title,
@@ -312,6 +324,42 @@ func (e *Entry) CsvRow() []string {
 		stringify(e.UserReviewsExtended),
 		stringSliceToString(e.Emails),
 	}
+
+	if e.hasAIToolsData() {
+		row = append(row,
+			stringSliceToString(e.ChatWidgets),
+			e.AIChat,
+			stringSliceToString(e.AIPhoneSignals),
+		)
+	}
+
+	return row
+}
+
+// hasAIToolsData reports whether AI tools detection ran for this entry.
+// When detection is enabled every entry gets an AIChat value (including
+// "no website"), so all rows of a job agree on whether the AI columns exist
+// and output without detection keeps its original columns.
+func (e *Entry) hasAIToolsData() bool {
+	return e.AIChat != ""
+}
+
+// SetAIToolsResult stores the outcome of AI tools detection on the entry.
+func (e *Entry) SetAIToolsResult(result AIToolsResult) {
+	e.ChatWidgets = result.ChatWidgets
+	e.AIChat = result.AIChat
+	e.AIPhoneSignals = result.AIPhoneSignals
+}
+
+// MarkAIToolsSkipped records why the website was not checked for AI tools.
+func (e *Entry) MarkAIToolsSkipped() {
+	if e.WebSite == "" {
+		e.AIChat = AIChatNoWebsite
+
+		return
+	}
+
+	e.AIChat = AIChatNotChecked
 }
 
 func (e *Entry) AddExtraReviews(pages [][]byte) {

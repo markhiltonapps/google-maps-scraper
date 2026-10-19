@@ -24,6 +24,7 @@ type PlaceJob struct {
 	ExitMonitor             exiter.Exiter
 	ExtractExtraReviews     bool
 	WriterManagedCompletion bool
+	DetectAITools           bool
 }
 
 func NewPlaceJob(parentID, langCode, u string, extractEmail, extraExtraReviews bool, opts ...PlaceJobOptions) *PlaceJob {
@@ -97,6 +98,14 @@ func WithPlaceJobWriterManagedCompletion() PlaceJobOptions {
 	}
 }
 
+// WithPlaceJobAIToolsDetection makes the job check the place's website for
+// AI chat and AI phone agent tools.
+func WithPlaceJobAIToolsDetection() PlaceJobOptions {
+	return func(j *PlaceJob) {
+		j.DetectAITools = true
+	}
+}
+
 func (j *PlaceJob) ProcessOnFetchError() bool {
 	return true
 }
@@ -160,7 +169,7 @@ func (j *PlaceJob) Process(_ context.Context, resp *scrapemate.Response) (any, [
 		entry.UserReviewsExtended = append(entry.UserReviewsExtended, deduped...)
 	}
 
-	if j.ExtractEmail && entry.IsWebsiteValidForEmail() {
+	if (j.ExtractEmail || j.DetectAITools) && entry.IsWebsiteValidForEmail() {
 		opts := []EmailExtractJobOptions{}
 		if j.ExitMonitor != nil {
 			opts = append(opts, WithEmailJobExitMonitor(j.ExitMonitor))
@@ -170,12 +179,26 @@ func (j *PlaceJob) Process(_ context.Context, resp *scrapemate.Response) (any, [
 			opts = append(opts, WithEmailJobWriterManagedCompletion())
 		}
 
+		if !j.ExtractEmail {
+			opts = append(opts, WithoutEmailExtraction())
+		}
+
+		if j.DetectAITools {
+			opts = append(opts, WithEmailJobAIToolsDetection())
+		}
+
 		emailJob := NewEmailJob(j.ID, &entry, opts...)
 
 		j.UsageInResults = false
 
 		return nil, []scrapemate.IJob{emailJob}, nil
-	} else if j.ExitMonitor != nil && !j.WriterManagedCompletion {
+	}
+
+	if j.DetectAITools {
+		entry.MarkAIToolsSkipped()
+	}
+
+	if j.ExitMonitor != nil && !j.WriterManagedCompletion {
 		j.ExitMonitor.IncrPlacesCompleted(1)
 	}
 

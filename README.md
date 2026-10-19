@@ -462,6 +462,11 @@ go build
 | 34 | `user_reviews` | Customer reviews (text, rating, timestamp) |
 | 35 | `user_reviews_extended` | Extended reviews up to ~300 (requires `-extra-reviews`) |
 | 36 | `emails` | Extracted email addresses (requires `-email` flag) |
+| 37 | `chat_widgets` | Chat widgets found on the website, e.g. `Intercom, tawk.to` (requires AI detection) |
+| 38 | `ai_chat` | `yes` (AI chatbot), `possible` (chat tool with optional AI), `no`, `unknown` (site failed to load), `no website` or `not checked` (requires AI detection) |
+| 39 | `ai_phone_signals` | Hints of an AI phone agent: AI receptionist vendor links and phrases like "AI receptionist" (requires AI detection) |
+
+Columns 37-39 are only present when **Detect AI chat & phone agents** is enabled in the Web UI (or `detect_ai_tools` via the REST API). The check loads each website in a browser, so it adds a few seconds per place. An AI phone agent cannot be confirmed from a website; `ai_phone_signals` only lists clues.
 
 </details>
 

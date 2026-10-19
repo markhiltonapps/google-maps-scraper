@@ -189,6 +189,11 @@ func (w *webrunner) scrapeJob(ctx context.Context, job *web.Job) error {
 	dedup := deduper.New()
 	exitMonitor := exiter.New()
 
+	var seedOpts []runner.SeedJobOption
+	if job.Data.DetectAITools {
+		seedOpts = append(seedOpts, runner.WithAIToolsDetection())
+	}
+
 	seedJobs, err := runner.CreateSeedJobs(
 		job.Data.FastMode,
 		job.Data.Lang,
@@ -207,6 +212,7 @@ func (w *webrunner) scrapeJob(ctx context.Context, job *web.Job) error {
 		dedup,
 		exitMonitor,
 		w.cfg.ExtraReviews || job.Data.ExtraReviews,
+		seedOpts...,
 	)
 	if err != nil {
 		err2 := w.svc.Update(ctx, job)

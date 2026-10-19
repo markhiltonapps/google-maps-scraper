@@ -35,6 +35,7 @@ type GmapJob struct {
 	ExtractExtraReviews     bool
 	WriterManagedCompletion bool
 	CompletionTracker       CompletionTracker
+	DetectAITools           bool
 }
 
 func NewGmapJob(
@@ -119,6 +120,31 @@ func WithGmapCompletionTracker(tracker CompletionTracker) GmapJobOptions {
 	}
 }
 
+// WithAIToolsDetection makes the job check each place's website for AI chat
+// and AI phone agent tools.
+func WithAIToolsDetection() GmapJobOptions {
+	return func(j *GmapJob) {
+		j.DetectAITools = true
+	}
+}
+
+func (j *GmapJob) placeJobOptions() []PlaceJobOptions {
+	jopts := []PlaceJobOptions{}
+	if j.ExitMonitor != nil {
+		jopts = append(jopts, WithPlaceJobExitMonitor(j.ExitMonitor))
+	}
+
+	if j.WriterManagedCompletion {
+		jopts = append(jopts, WithPlaceJobWriterManagedCompletion())
+	}
+
+	if j.DetectAITools {
+		jopts = append(jopts, WithPlaceJobAIToolsDetection())
+	}
+
+	return jopts
+}
+
 func (j *GmapJob) UseInResults() bool {
 	return false
 }
@@ -155,31 +181,13 @@ func (j *GmapJob) Process(ctx context.Context, resp *scrapemate.Response) (any, 
 	var next []scrapemate.IJob
 
 	if strings.Contains(resp.URL, "/maps/place/") {
-		jopts := []PlaceJobOptions{}
-		if j.ExitMonitor != nil {
-			jopts = append(jopts, WithPlaceJobExitMonitor(j.ExitMonitor))
-		}
-
-		if j.WriterManagedCompletion {
-			jopts = append(jopts, WithPlaceJobWriterManagedCompletion())
-		}
-
-		placeJob := NewPlaceJob(j.ID, j.LangCode, resp.URL, j.ExtractEmail, j.ExtractExtraReviews, jopts...)
+		placeJob := NewPlaceJob(j.ID, j.LangCode, resp.URL, j.ExtractEmail, j.ExtractExtraReviews, j.placeJobOptions()...)
 
 		next = append(next, placeJob)
 	} else {
 		doc.Find(`div[role=feed] div[jsaction]>a`).Each(func(_ int, s *goquery.Selection) {
 			if href := s.AttrOr("href", ""); href != "" {
-				jopts := []PlaceJobOptions{}
-				if j.ExitMonitor != nil {
-					jopts = append(jopts, WithPlaceJobExitMonitor(j.ExitMonitor))
-				}
-
-				if j.WriterManagedCompletion {
-					jopts = append(jopts, WithPlaceJobWriterManagedCompletion())
-				}
-
-				nextJob := NewPlaceJob(j.ID, j.LangCode, href, j.ExtractEmail, j.ExtractExtraReviews, jopts...)
+				nextJob := NewPlaceJob(j.ID, j.LangCode, href, j.ExtractEmail, j.ExtractExtraReviews, j.placeJobOptions()...)
 
 				if j.Deduper == nil || j.Deduper.AddIfNotExists(ctx, href) {
 					next = append(next, nextJob)

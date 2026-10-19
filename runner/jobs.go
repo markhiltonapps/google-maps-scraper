@@ -23,6 +23,7 @@ type seedJobConfig struct {
 	completedInputSkipper func(string) bool
 	completionTracker     gmaps.CompletionTracker
 	deterministicIDs      bool
+	detectAITools         bool
 }
 
 // SeedJobOption configures seed job creation.
@@ -46,6 +47,14 @@ func WithCompletionTracker(tracker gmaps.CompletionTracker) SeedJobOption {
 func WithDeterministicSeedIDs() SeedJobOption {
 	return func(cfg *seedJobConfig) {
 		cfg.deterministicIDs = true
+	}
+}
+
+// WithAIToolsDetection checks each place's website for AI chat and AI phone
+// agent tools. It has no effect in fast mode, which does not visit websites.
+func WithAIToolsDetection() SeedJobOption {
+	return func(cfg *seedJobConfig) {
+		cfg.detectAITools = true
 	}
 }
 
@@ -146,6 +155,10 @@ func CreateSeedJobs(
 
 			if createCfg.completionTracker != nil {
 				opts = append(opts, gmaps.WithGmapCompletionTracker(createCfg.completionTracker))
+			}
+
+			if createCfg.detectAITools {
+				opts = append(opts, gmaps.WithAIToolsDetection())
 			}
 
 			job = gmaps.NewGmapJob(id, langCode, query, maxDepth, email, geoCoordinates, zoom, opts...)

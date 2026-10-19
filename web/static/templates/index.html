@@ -102,6 +102,11 @@
                                 <input type="checkbox" id="email" name="email" {{if .Email}}checked{{end}}>
                                 <label for="email">Fetch Emails</label>
                             </div>
+                            <div class="form-group checkbox">
+                                <input type="checkbox" id="detectai" name="detectai" {{if .DetectAI}}checked{{end}}>
+                                <label for="detectai">Detect AI chat &amp; phone agents</label>
+                            </div>
+                            <p class="text-muted"><small>Visits each website and adds chat_widgets, ai_chat and ai_phone_signals columns. Not available in Fast Mode.</small></p>
                             <div class="form-group">
                                 <label for="maxtime">Max job time:</label>
                                 <input type="text" id="maxtime" name="maxtime" value="{{.MaxTime}}">

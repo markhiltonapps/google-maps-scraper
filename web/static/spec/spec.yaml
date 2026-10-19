@@ -192,6 +192,9 @@ components:
           type: integer
         email:
           type: boolean
+        detect_ai_tools:
+          type: boolean
+          description: Visit each website and detect AI chat and AI phone agent tools (not available in fast mode)
         max_time:
           type: integer
         proxies:
@@ -243,6 +246,9 @@ components:
           type: integer
         email:
           type: boolean
+        detect_ai_tools:
+          type: boolean
+          description: Visit each website and detect AI chat and AI phone agent tools (not available in fast mode)
         max_time:
           type: integer
         proxies:

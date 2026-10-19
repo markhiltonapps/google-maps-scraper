@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 	"strings"
+	"time"
 	"uuid"
 
 	"github.com/PuerkitoBio/goquery"
@@ -13,14 +14,32 @@ import (
 	"github.com/gosom/google-maps-scraper/exiter"
 )
 
+const (
+	renderedHTMLMetaKey = "rendered_html"
+	jsGlobalsMetaKey    = "js_globals"
+
+	// chatWidgetSettleTime gives chat widgets, which are usually injected by
+	// JavaScript after the page has loaded, time to appear in the DOM.
+	chatWidgetSettleTime = 3 * time.Second
+
+	// presentGlobalsJS returns which of the given names are defined on window.
+	presentGlobalsJS = `(names) => names.filter((n) => {
+		try { return typeof window[n] !== 'undefined'; } catch (e) { return false; }
+	})`
+)
+
 type EmailExtractJobOptions func(*EmailExtractJob)
 
+// EmailExtractJob visits a place's website to extract emails and, optionally,
+// detect AI chat and AI phone agent tools.
 type EmailExtractJob struct {
 	scrapemate.Job
 
 	Entry                   *Entry
 	ExitMonitor             exiter.Exiter
 	WriterManagedCompletion bool
+	ExtractEmail            bool
+	DetectAITools           bool
 }
 
 func NewEmailJob(parentID string, entry *Entry, opts ...EmailExtractJobOptions) *EmailExtractJob {
@@ -41,6 +60,7 @@ func NewEmailJob(parentID string, entry *Entry, opts ...EmailExtractJobOptions) 
 	}
 
 	job.Entry = entry
+	job.ExtractEmail = true
 
 	for _, opt := range opts {
 		opt(&job)
@@ -61,10 +81,54 @@ func WithEmailJobWriterManagedCompletion() EmailExtractJobOptions {
 	}
 }
 
+// WithEmailJobAIToolsDetection makes the job check the website for AI chat
+// and AI phone agent tools.
+func WithEmailJobAIToolsDetection() EmailExtractJobOptions {
+	return func(j *EmailExtractJob) {
+		j.DetectAITools = true
+	}
+}
+
+// WithoutEmailExtraction makes the job skip email extraction, for when the
+// website is only visited to detect AI tools.
+func WithoutEmailExtraction() EmailExtractJobOptions {
+	return func(j *EmailExtractJob) {
+		j.ExtractEmail = false
+	}
+}
+
+// BrowserActions loads the website. When AI tools detection is enabled it
+// also captures the rendered HTML and the chat widget globals present on the
+// page, since most chat widgets are injected by JavaScript and are missing
+// from the HTML the server sends.
+func (j *EmailExtractJob) BrowserActions(ctx context.Context, page scrapemate.BrowserPage) scrapemate.Response {
+	resp := j.Job.BrowserActions(ctx, page)
+	if !j.DetectAITools || resp.Error != nil {
+		return resp
+	}
+
+	page.WaitForTimeout(chatWidgetSettleTime)
+
+	resp.Meta = map[string]any{}
+
+	if html, err := page.Content(); err == nil {
+		resp.Meta[renderedHTMLMetaKey] = html
+	}
+
+	if raw, err := page.Eval(presentGlobalsJS, ChatWidgetGlobals()); err == nil {
+		if names, ok := raw.([]any); ok {
+			resp.Meta[jsGlobalsMetaKey] = toStringSlice(names)
+		}
+	}
+
+	return resp
+}
+
 func (j *EmailExtractJob) Process(ctx context.Context, resp *scrapemate.Response) (any, []scrapemate.IJob, error) {
 	defer func() {
 		resp.Document = nil
 		resp.Body = nil
+		resp.Meta = nil
 	}()
 
 	defer func() {
@@ -76,6 +140,14 @@ func (j *EmailExtractJob) Process(ctx context.Context, resp *scrapemate.Response
 	log := scrapemate.GetLoggerFromContext(ctx)
 
 	log.Info("Processing email job", "url", j.URL)
+
+	if j.DetectAITools {
+		j.detectAITools(resp)
+	}
+
+	if !j.ExtractEmail {
+		return j.Entry, nil, nil
+	}
 
 	// if html fetch failed just return
 	if resp.Error != nil {
@@ -99,6 +171,25 @@ func (j *EmailExtractJob) Process(ctx context.Context, resp *scrapemate.Response
 
 func (j *EmailExtractJob) ProcessOnFetchError() bool {
 	return true
+}
+
+func (j *EmailExtractJob) detectAITools(resp *scrapemate.Response) {
+	if resp.Error != nil {
+		j.Entry.AIChat = AIChatUnknown
+
+		return
+	}
+
+	// Fall back to the server HTML when the page was not fetched with a
+	// browser (e.g. the HTTP fetcher), so script-tag widgets are still found.
+	html := resp.Body
+	if rendered, ok := resp.Meta[renderedHTMLMetaKey].(string); ok && rendered != "" {
+		html = []byte(rendered)
+	}
+
+	globals, _ := resp.Meta[jsGlobalsMetaKey].([]string)
+
+	j.Entry.SetAIToolsResult(DetectAITools(html, globals))
 }
 
 func docEmailExtractor(doc *goquery.Document) []string {
