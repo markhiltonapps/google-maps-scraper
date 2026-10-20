@@ -179,9 +179,9 @@ func (j *EmailExtractJob) Process(ctx context.Context, resp *scrapemate.Response
 		return j.Entry, nil, nil
 	}
 
-	emails := docEmailExtractor(doc)
+	emails := CleanEmails(docEmailExtractor(doc))
 	if len(emails) == 0 {
-		emails = regexEmailExtractor(resp.Body)
+		emails = CleanEmails(regexEmailExtractor(resp.Body))
 	}
 
 	j.Entry.Emails = emails
@@ -210,6 +210,50 @@ func (j *EmailExtractJob) detectAITools(resp *scrapemate.Response) {
 	globals, _ := resp.Meta[jsGlobalsMetaKey].([]string)
 
 	j.Entry.SetAIToolsResult(DetectAITools(html, globals))
+}
+
+// nonEmailSuffixes are file extensions that look like an email domain's
+// ending in asset names such as "logo@2x.png".
+var nonEmailSuffixes = []string{
+	".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico", ".avif", ".tif", ".tiff",
+	".js", ".css", ".mp4", ".webm", ".pdf", ".woff", ".woff2", ".ttf",
+}
+
+// CleanEmails drops strings that are file names rather than email addresses
+// (e.g. "logo-300x149@2x.png") and removes case-insensitive duplicates,
+// keeping the first spelling seen.
+func CleanEmails(emails []string) []string {
+	seen := make(map[string]bool, len(emails))
+	out := make([]string, 0, len(emails))
+
+	for _, email := range emails {
+		email = strings.TrimSpace(email)
+		lower := strings.ToLower(email)
+
+		if email == "" || seen[lower] || hasNonEmailSuffix(lower) {
+			continue
+		}
+
+		seen[lower] = true
+
+		out = append(out, email)
+	}
+
+	if len(out) == 0 {
+		return nil
+	}
+
+	return out
+}
+
+func hasNonEmailSuffix(lower string) bool {
+	for _, suffix := range nonEmailSuffixes {
+		if strings.HasSuffix(lower, suffix) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func docEmailExtractor(doc *goquery.Document) []string {

@@ -32,15 +32,18 @@ const (
 )
 
 type Server struct {
-	tmpl map[string]*template.Template
-	srv  *http.Server
-	svc  *Service
+	tmpl       map[string]*template.Template
+	srv        *http.Server
+	svc        *Service
+	password   string
+	loginDelay time.Duration
 }
 
-func New(svc *Service, addr string) (*Server, error) {
+func New(svc *Service, addr string, opts ...ServerOption) (*Server, error) {
 	ans := Server{
-		svc:  svc,
-		tmpl: make(map[string]*template.Template),
+		svc:        svc,
+		tmpl:       make(map[string]*template.Template),
+		loginDelay: loginFailureDelay,
 		srv: &http.Server{
 			Addr:              addr,
 			ReadHeaderTimeout: 10 * time.Second,
@@ -49,6 +52,10 @@ func New(svc *Service, addr string) (*Server, error) {
 			IdleTimeout:       120 * time.Second,
 			MaxHeaderBytes:    1 << 20,
 		},
+	}
+
+	for _, opt := range opts {
+		opt(&ans)
 	}
 
 	staticFS, err := fs.Sub(static, "static")
@@ -87,6 +94,8 @@ func New(svc *Service, addr string) (*Server, error) {
 
 		ans.shareJob(w, r)
 	})
+	mux.HandleFunc("/login", ans.login)
+	mux.HandleFunc("/logout", ans.logout)
 	mux.HandleFunc("/", ans.index)
 
 	// api routes
@@ -142,7 +151,7 @@ func New(svc *Service, addr string) (*Server, error) {
 		ans.download(w, r)
 	})
 
-	handler := securityHeaders(mux)
+	handler := securityHeaders(ans.requireAuth(mux))
 	ans.srv.Handler = handler
 
 	tmplsKeys := []string{
@@ -151,6 +160,7 @@ func New(svc *Service, addr string) (*Server, error) {
 		"static/templates/job_row.html",
 		"static/templates/job_view.html",
 		"static/templates/redoc.html",
+		"static/templates/login.html",
 	}
 
 	for _, key := range tmplsKeys {
@@ -218,6 +228,8 @@ type formData struct {
 	Email    bool
 	DetectAI bool
 	Proxies  []string
+	// AuthEnabled shows the sign-out link.
+	AuthEnabled bool
 }
 
 type ctxKey string
@@ -280,6 +292,8 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 		Lon:      "0",
 		Depth:    10,
 		Email:    false,
+
+		AuthEnabled: s.authEnabled(),
 	}
 
 	_ = tmpl.Execute(w, data)

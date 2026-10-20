@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/gosom/google-maps-scraper/gmaps"
 )
 
 // leadsFormat is the download format that returns a short, human-friendly
@@ -39,7 +41,7 @@ var leadsColumns = []leadsColumn{
 		return leadsYes
 	}},
 	{header: "Website", value: func(row map[string]string) string { return stripTrackingParams(row["website"]) }},
-	{header: "Email", value: field("emails")},
+	{header: "Email", value: func(row map[string]string) string { return cleanEmailList(row["emails"]) }},
 	{header: "AI Chat on Website", value: func(row map[string]string) string { return friendlyAIChat(row["ai_chat"]) }, aiOnly: true},
 	{header: "Chat Tool", value: field("chat_widgets"), aiOnly: true},
 	{header: "AI Phone Clues", value: field("ai_phone_signals"), aiOnly: true},
@@ -68,6 +70,16 @@ func friendlyAIChat(v string) string {
 	}
 
 	return v
+}
+
+// cleanEmailList tidies the emails column of results scraped before
+// gmaps.CleanEmails existed, so older jobs read cleanly too.
+func cleanEmailList(v string) string {
+	if v == "" {
+		return ""
+	}
+
+	return strings.Join(gmaps.CleanEmails(strings.Split(v, ",")), ", ")
 }
 
 // trimFloat turns "4.900000" into "4.9".

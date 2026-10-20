@@ -311,6 +311,8 @@ docker run \
 
 Then open http://localhost:8080 in your browser.
 
+To protect the Web UI with a shared team password, set the `WEB_PASSWORD` environment variable (e.g. `-e WEB_PASSWORD=...` with Docker). Visitors then sign in once (sessions last 30 days); results share links (`/share/<job-id>`) and their downloads stay public, and the REST API accepts the same password via HTTP basic auth.
+
 Or download the [binary release](https://github.com/gosom/google-maps-scraper/releases) for your platform.
 
 > **Note:** Results take at least 3 minutes to appear (minimum configured runtime).

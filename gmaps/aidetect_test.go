@@ -188,3 +188,30 @@ func TestMarkAIToolsSkipped(t *testing.T) {
 	social.MarkAIToolsSkipped()
 	require.Equal(t, gmaps.AIChatNotChecked, social.AIChat)
 }
+
+func TestDetectAIToolsVendorHostVariants(t *testing.T) {
+	t.Parallel()
+
+	html := `<html><body><script src="https://secure.livechatinc.com/licence/1/tracking.js"></script>` +
+		`<script src="https://webchat.birdeye.com/widget.js"></script></body></html>`
+
+	got := gmaps.DetectAITools([]byte(html), nil)
+
+	require.Equal(t, []string{"Birdeye", "LiveChat"}, got.ChatWidgets, "known vendors on other hosts must not also show as Other chat")
+	require.Equal(t, gmaps.AIChatPossible, got.AIChat)
+}
+
+func TestCleanEmails(t *testing.T) {
+	t.Parallel()
+
+	in := []string{
+		"office.ktplumbing@gmail.com",
+		"Office.ktplumbing@gmail.com",
+		"Plumbing-Callout-1-150×150@2x.webp",
+		"logo-300×149@2x.png",
+		" info@acme.com ",
+	}
+
+	require.Equal(t, []string{"office.ktplumbing@gmail.com", "info@acme.com"}, gmaps.CleanEmails(in))
+	require.Nil(t, gmaps.CleanEmails([]string{"icon@3x.svg"}))
+}

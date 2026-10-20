@@ -24,6 +24,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// webPasswordEnv names the environment variable holding the shared team
+// password for the web UI. When it is unset the UI is open to anyone.
+const webPasswordEnv = "WEB_PASSWORD"
+
 type webrunner struct {
 	srv       *web.Server
 	svc       *web.Service
@@ -56,7 +60,14 @@ func New(cfg *runner.Config) (runner.Runner, error) {
 
 	svc := web.NewService(repo, cfg.DataFolder)
 
-	srv, err := web.New(svc, cfg.Addr)
+	var srvOpts []web.ServerOption
+	if password := os.Getenv(webPasswordEnv); password != "" {
+		srvOpts = append(srvOpts, web.WithPassword(password))
+
+		log.Printf("web UI: password protection enabled (%s)", webPasswordEnv)
+	}
+
+	srv, err := web.New(svc, cfg.Addr, srvOpts...)
 	if err != nil {
 		return nil, err
 	}

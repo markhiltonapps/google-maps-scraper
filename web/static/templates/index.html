@@ -22,6 +22,7 @@
             </div>
             <nav class="topbar-nav">
                 <a href="/api/docs" target="_blank" rel="noopener noreferrer">API docs</a>
+                {{if .AuthEnabled}}<a href="/logout">Sign out</a>{{end}}
             </nav>
         </header>
 
