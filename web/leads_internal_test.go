@@ -32,10 +32,32 @@ func TestWriteLeadsCSV(t *testing.T) {
 		t.Fatalf("got %d rows, want %d: %v", len(rows), len(want), rows)
 	}
 
+	// The website status and prompt are the last two columns; check them apart.
+	last := len(want[0])
 	for i := range want {
-		if strings.Join(rows[i], "|") != strings.Join(want[i], "|") {
-			t.Fatalf("row %d:\n got  %q\n want %q", i, rows[i], want[i])
+		if len(rows[i]) != last+2 {
+			t.Fatalf("row %d has %d columns, want %d", i, len(rows[i]), last+2)
 		}
+
+		if strings.Join(rows[i][:last], "|") != strings.Join(want[i], "|") {
+			t.Fatalf("row %d:\n got  %q\n want %q", i, rows[i][:last], want[i])
+		}
+	}
+
+	if rows[0][last] != "Website Status" || rows[0][last+1] != "Website Prompt (copy & paste)" {
+		t.Fatalf("unexpected prompt headers: %q", rows[0][last:])
+	}
+
+	if rows[1][last] != "Has website" || !strings.Contains(rows[1][last+1], "already has its own website") {
+		t.Fatalf("a business with a website must not get a prompt: %q", rows[1][last:])
+	}
+
+	if !strings.Contains(rows[2][last+1], "No Site Dental") || !strings.Contains(rows[2][last+1], "Act as an expert web designer") {
+		t.Fatalf("the no-website row needs a full prompt: %q", rows[2][last+1])
+	}
+
+	if rows[2][last] == "" {
+		t.Fatal("expected a status for the no-website row")
 	}
 }
 

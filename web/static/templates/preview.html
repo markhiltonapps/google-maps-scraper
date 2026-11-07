@@ -11,7 +11,7 @@
                 <a class="btn btn-secondary btn-sm" href="{{.SharePath}}" target="_blank" rel="noopener">Open share page</a>
                 <a class="btn btn-secondary btn-sm" href="/download?id={{.Job.ID}}" download title="Every field the scraper collected">Full data</a>
                 <a class="btn btn-secondary btn-sm" href="/download?id={{.Job.ID}}&format=sitebrief" download title="Clean details, real testimonials and a copy-and-paste AI prompt to build a demo website for each business">Website briefs</a>
-                <a class="btn btn-primary btn-sm" href="/download?id={{.Job.ID}}&format=leads" download>Download leads</a>
+                <a class="btn btn-primary btn-sm" href="/download?id={{.Job.ID}}&format=leads" download title="Your leads plus a ready-to-paste website prompt for each business, as the last column">Download leads + prompts</a>
                 {{end}}
                 <button type="button" class="map-modal-close" aria-label="Close" onclick="closeResults()">&times;</button>
             </div>

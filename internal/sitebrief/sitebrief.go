@@ -141,6 +141,25 @@ func orDefault(s, fallback string) string {
 // Build reads a full scraper results CSV (the "Full data" download) and returns
 // one brief per business, best candidates first.
 func Build(src io.Reader) ([]Brief, error) {
+	briefs, err := BuildInOrder(src)
+	if err != nil {
+		return nil, err
+	}
+
+	sort.SliceStable(briefs, func(i, j int) bool {
+		if rank(briefs[i].Status) != rank(briefs[j].Status) {
+			return rank(briefs[i].Status) < rank(briefs[j].Status)
+		}
+
+		return briefs[i].ReviewCount > briefs[j].ReviewCount
+	})
+
+	return briefs, nil
+}
+
+// BuildInOrder is like Build but keeps the briefs in the same order as the rows
+// of the results CSV, so each brief lines up with its source row.
+func BuildInOrder(src io.Reader) ([]Brief, error) {
 	reader := csv.NewReader(src)
 	reader.FieldsPerRecord = -1
 
@@ -185,14 +204,6 @@ func Build(src io.Reader) ([]Brief, error) {
 
 		briefs = append(briefs, fromRecord(field))
 	}
-
-	sort.SliceStable(briefs, func(i, j int) bool {
-		if rank(briefs[i].Status) != rank(briefs[j].Status) {
-			return rank(briefs[i].Status) < rank(briefs[j].Status)
-		}
-
-		return briefs[i].ReviewCount > briefs[j].ReviewCount
-	})
 
 	return briefs, nil
 }

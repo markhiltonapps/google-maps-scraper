@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gosom/google-maps-scraper/gmaps"
+	"github.com/gosom/google-maps-scraper/internal/sitebrief"
 )
 
 // leadsFormat is the download format that returns a short, human-friendly
@@ -200,11 +202,56 @@ func buildLeads(src io.Reader, maxRows int) (leadsTable, error) {
 	return table, nil
 }
 
-// writeLeadsCSV converts a full results CSV into the short leads format.
+// Columns appended to the downloaded leads file: the website brief status and
+// a ready-to-paste prompt that already contains the business's details.
+const (
+	leadsBriefStatusHeader = "Website Status"
+	leadsPromptHeader      = "Website Prompt (copy & paste)"
+	leadsHasWebsiteHeader  = "Has Website"
+	leadsAlreadyHasSite    = "Has website"
+	leadsNoPromptNote      = "No prompt: this business already has its own website."
+)
+
+// addWebsitePrompts appends a status and a website-building prompt to each row.
+// Businesses that already have their own website get a note instead of a prompt.
+func addWebsitePrompts(table *leadsTable, briefs []sitebrief.Brief) {
+	hasSite := -1
+
+	for i, h := range table.Headers {
+		if h == leadsHasWebsiteHeader {
+			hasSite = i
+		}
+	}
+
+	table.Headers = append(table.Headers, leadsBriefStatusHeader, leadsPromptHeader)
+
+	for i := range table.Rows {
+		if hasSite >= 0 && table.Rows[i][hasSite] == leadsYes {
+			table.Rows[i] = append(table.Rows[i], leadsAlreadyHasSite, leadsNoPromptNote)
+
+			continue
+		}
+
+		table.Rows[i] = append(table.Rows[i], string(briefs[i].Status), briefs[i].Prompt)
+	}
+}
+
+// writeLeadsCSV converts a full results CSV into the short leads format, with
+// the website status and prompt as the last two columns.
 func writeLeadsCSV(dst io.Writer, src io.Reader) error {
-	table, err := buildLeads(src, 0)
+	data, err := io.ReadAll(src)
+	if err != nil {
+		return fmt.Errorf("read results: %w", err)
+	}
+
+	table, err := buildLeads(bytes.NewReader(data), 0)
 	if err != nil {
 		return err
+	}
+
+	// The prompts are a bonus: if they can't be built, the plain leads still download.
+	if briefs, berr := sitebrief.BuildInOrder(bytes.NewReader(data)); berr == nil && len(briefs) == len(table.Rows) {
+		addWebsitePrompts(&table, briefs)
 	}
 
 	writer := csv.NewWriter(dst)
