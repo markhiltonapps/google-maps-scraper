@@ -99,14 +99,27 @@ func (b *Brief) Row() []string {
 
 // mapsLink builds a short, stable Google Maps link from the place ID, falling
 // back to the scraped link without its tracking parameters.
-func mapsLink(name, placeID, scraped string) string {
+func mapsLink(name, placeID, scraped, address string) string {
 	if placeID = strings.TrimSpace(placeID); placeID != "" {
 		return "https://www.google.com/maps/search/?api=1&query=" + url.QueryEscape(name) + "&query_place_id=" + url.QueryEscape(placeID)
 	}
 
-	link, _, _ := strings.Cut(strings.TrimSpace(scraped), "?")
+	if link, _, _ := strings.Cut(strings.TrimSpace(scraped), "?"); link != "" {
+		return link
+	}
 
-	return link
+	// No place ID or link in the data: fall back to a Maps search by name and
+	// street address, which still opens the right business in most cases.
+	if name = strings.TrimSpace(name); name == "" {
+		return ""
+	}
+
+	query := name
+	if address != "" {
+		query += " " + address
+	}
+
+	return "https://www.google.com/maps/search/?api=1&query=" + url.QueryEscape(query)
 }
 
 // orNotListed shows an explicit "Not listed" rather than an empty cell.
@@ -202,7 +215,7 @@ func fromRecord(field func(string) string) Brief {
 		Address:  tidy(field("address")),
 	}
 
-	b.MapsLink = mapsLink(b.Name, field("place_id"), field("link"))
+	b.MapsLink = mapsLink(b.Name, field("place_id"), field("link"), b.Address)
 
 	var notes []string
 

@@ -355,8 +355,10 @@ var reviewServiceRules = []serviceRule{
 	rule("Home additions", `additions?\b`),
 	rule("Concrete and patios", `concrete|patio|driveway|slab`),
 	rule("Gutters", `gutter`),
-	rule("Electrical work", `electric|wiring`),
-	rule("Plumbing", `plumb`),
+	rule("Appliance installation", `dishwasher|microwave|appliance|washer\b|dryer\b|refrigerator|stove|oven\b|cooktop|garbage disposal`),
+	rule("Electrical work", `electric|wiring|outlet|light fixture|ceiling fan|breaker`),
+	rule("Plumbing", `plumb|faucet|toilet|water heater|drain`),
+	rule("Air conditioning and heating", `hvac|air condition|\ba/?c\b|furnace|heating`),
 	rule("Storm and water-damage repair", `storm|hail|flood|water damage|hurricane|harvey|beryl`),
 	rule("Siding", `siding`),
 	rule("Framing", `framing`),
@@ -408,6 +410,9 @@ func servicesFromReviews(reviews []review) []string {
 	return out
 }
 
+// repairsLabel is the catch-all service shown for most trades.
+const repairsLabel = "Repairs and maintenance"
+
 type tradeServices struct {
 	keywords []string
 	services []string
@@ -416,11 +421,18 @@ type tradeServices struct {
 // typicalServices are usual offerings for a trade, shown as suggestions that the
 // owner has not confirmed. Order matters: the first matching trade wins.
 var typicalServices = []tradeServices{
+	{[]string{"electric"}, []string{"Electrical repairs", "Lighting installation", "Ceiling fans", "Outlets and switches", "Appliance hookups", "Troubleshooting"}},
+	{[]string{"plumb"}, []string{"Leak repair", "Fixture installation", "Water heaters", "Drain cleaning", "Faucets and toilets", repairsLabel}},
+	{[]string{"appliance"}, []string{"Appliance installation", "Dishwashers", "Microwaves and ranges", "Garbage disposals", repairsLabel, "Hookups"}},
+	{[]string{"handyman", "handy man"}, []string{"Small repairs", "Drywall patching", "Painting touch-ups", "Fixture and appliance installation", "Door and window repair", "Odd jobs and maintenance"}},
+	{[]string{"air condition", "hvac", "heating"}, []string{"Air conditioning repair", "Heating repair", "System installation", "Maintenance visits", "Thermostats", "Troubleshooting"}},
+	{[]string{"fence"}, []string{"Fence installation", "Fence repair", "Gates", "Decks", "Staining and sealing", repairsLabel}},
+	{[]string{"floor"}, []string{"Flooring installation", "Floor repair", "Laminate and vinyl", "Tile", "Hardwood", repairsLabel}},
 	{[]string{"roof"}, []string{"Roof inspections", "Roof repair", "Roof replacement", "Storm and hail damage repair", "Leak repair", "Gutters"}},
 	{[]string{"dry wall", "drywall"}, []string{"Drywall installation", "Drywall repair", "Texture and finishing", "Water-damage repair", "Patching and painting", "Ceiling repair"}},
-	{[]string{"remodel", "renovat"}, []string{"Kitchen remodeling", "Bathroom remodeling", "Flooring", "Cabinets and countertops", "Interior updates", "Repairs and maintenance"}},
+	{[]string{"remodel", "renovat"}, []string{"Kitchen remodeling", "Bathroom remodeling", "Flooring", "Cabinets and countertops", "Interior updates", repairsLabel}},
 	{[]string{"home builder", "builder"}, []string{"New home construction", "Custom homes", "Home additions", "Outdoor living spaces", "Remodeling", "Project planning"}},
-	{[]string{"general contractor", "construction company", "contractor"}, []string{"Home remodeling", "Kitchen and bathroom remodels", "Roofing and repairs", "Fences and decks", "Flooring", "Repairs and maintenance"}},
+	{[]string{"general contractor", "construction company", "contractor"}, []string{"Home remodeling", "Kitchen and bathroom remodels", "Roofing and repairs", "Fences and decks", "Flooring", repairsLabel}},
 }
 
 func servicesForTrade(industry string) []string {

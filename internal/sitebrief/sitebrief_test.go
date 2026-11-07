@@ -386,3 +386,30 @@ func TestWriteCSV(t *testing.T) {
 	require.Len(t, records[1], len(Headers()))
 	require.Contains(t, records[1][len(records[1])-1], "Acme")
 }
+
+func TestPromptNeverAsksQuestionsAndTrustsReviews(t *testing.T) {
+	t.Parallel()
+
+	review := reviewsJSON(t, rv("Sam Cruz", 5, "They installed our dishwasher and the over the range microwave quickly.", "a month ago"))
+	row := []string{"Texas Home Pros", "Electrical installation service", "(281) 555-0102", "", "", "5.000000", "4", review, "", "", ""}
+
+	briefs, err := Build(strings.NewReader(csvOf(t, row)))
+	require.NoError(t, err)
+
+	prompt := briefs[0].Prompt
+	require.Contains(t, prompt, "Do not ask me any questions")
+	require.Contains(t, prompt, "trust the reviews")
+	require.Contains(t, prompt, "built around the work customers mention in their reviews")
+	require.Contains(t, prompt, "https://www.google.com/maps/search/?api=1&query=Texas+Home+Pros", "a Maps search link is used when there is no place ID")
+	require.Contains(t, prompt, `"Find us" section with a link to the Google Maps listing`)
+	require.NotContains(t, prompt, "the hours and", "hours are not listed, so the prompt must not ask for them")
+}
+
+func TestMapsLinkFallback(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, "https://maps.example/b", mapsLink("B", "", "https://maps.example/b?x=1", ""))
+	require.Contains(t, mapsLink("B Co", "pid", "", ""), "query_place_id=pid")
+	require.Equal(t, "https://www.google.com/maps/search/?api=1&query=B+Co+1+Main+St", mapsLink("B Co", "", "", "1 Main St"))
+	require.Empty(t, mapsLink("", "", "", ""))
+}
