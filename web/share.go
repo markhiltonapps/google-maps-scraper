@@ -141,6 +141,7 @@ func (s *Server) renderResults(w http.ResponseWriter, r *http.Request, tmplKey s
 // resultsTemplateFuncs are used by the leads table partial.
 var resultsTemplateFuncs = template.FuncMap{
 	"displayURL": displayURL,
+	"noOwnSite":  noOwnSite,
 	"aiChatClass": func(v string) string {
 		switch {
 		case strings.HasPrefix(v, leadsYes):
@@ -153,6 +154,15 @@ var resultsTemplateFuncs = template.FuncMap{
 			return "pill-neutral"
 		}
 	},
+}
+
+// hasWebsiteColumn is the index of the "Has Website" column in leadsColumns.
+const hasWebsiteColumn = 3
+
+// noOwnSite reports whether a leads row is a business without a website of its
+// own, judging by its "Has Website" cell.
+func noOwnSite(row []string) bool {
+	return len(row) > hasWebsiteColumn && row[hasWebsiteColumn] != leadsYes
 }
 
 // displayURL shortens a website for display: "https://www.acme.com/" -> "acme.com".

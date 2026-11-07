@@ -1,16 +1,20 @@
 // Behaviour for the leads tables (results preview and public share page).
 // Uses event delegation so it also works for tables htmx swaps in later.
 (function () {
-    function filterTable(input) {
-        var panel = input.closest('[data-leads-panel]');
+    function filterTable(control) {
+        var panel = control.closest('[data-leads-panel]');
         if (!panel) return;
 
-        var query = input.value.trim().toLowerCase();
+        var input = panel.querySelector('[data-leads-filter]');
+        var noSiteBox = panel.querySelector('[data-leads-nosite]');
+        var query = input ? input.value.trim().toLowerCase() : '';
+        var noSiteOnly = !!(noSiteBox && noSiteBox.checked);
         var rows = panel.querySelectorAll('.leads-table tbody tr');
         var shown = 0;
 
         rows.forEach(function (row) {
-            var match = query === '' || row.textContent.toLowerCase().indexOf(query) !== -1;
+            var match = (query === '' || row.textContent.toLowerCase().indexOf(query) !== -1) &&
+                (!noSiteOnly || row.hasAttribute('data-nosite'));
             row.hidden = !match;
             if (match) shown++;
         });
@@ -18,11 +22,12 @@
         var count = panel.querySelector('[data-leads-count]');
         if (count) {
             var total = count.getAttribute('data-total');
-            count.textContent = query === '' ? total + (total === '1' ? ' business' : ' businesses') : shown + ' of ' + total + ' shown';
+            var filtering = query !== '' || noSiteOnly;
+            count.textContent = !filtering ? total + (total === '1' ? ' business' : ' businesses') : shown + ' of ' + total + ' shown';
         }
 
         var noMatch = panel.querySelector('[data-leads-nomatch]');
-        if (noMatch) noMatch.hidden = shown !== 0 || query === '';
+        if (noMatch) noMatch.hidden = shown !== 0 || (query === '' && !noSiteOnly);
     }
 
     function copyText(text) {
@@ -49,6 +54,10 @@
 
     document.addEventListener('input', function (event) {
         if (event.target.matches('[data-leads-filter]')) filterTable(event.target);
+    });
+
+    document.addEventListener('change', function (event) {
+        if (event.target.matches('[data-leads-nosite]')) filterTable(event.target);
     });
 
     document.addEventListener('click', function (event) {

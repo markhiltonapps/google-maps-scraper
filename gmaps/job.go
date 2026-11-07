@@ -36,6 +36,7 @@ type GmapJob struct {
 	WriterManagedCompletion bool
 	CompletionTracker       CompletionTracker
 	DetectAITools           bool
+	NoWebsiteOnly           bool
 }
 
 func NewGmapJob(
@@ -128,6 +129,13 @@ func WithAIToolsDetection() GmapJobOptions {
 	}
 }
 
+// WithNoWebsiteOnly keeps only places without a website of their own.
+func WithNoWebsiteOnly() GmapJobOptions {
+	return func(j *GmapJob) {
+		j.NoWebsiteOnly = true
+	}
+}
+
 func (j *GmapJob) placeJobOptions() []PlaceJobOptions {
 	jopts := []PlaceJobOptions{}
 	if j.ExitMonitor != nil {
@@ -140,6 +148,10 @@ func (j *GmapJob) placeJobOptions() []PlaceJobOptions {
 
 	if j.DetectAITools {
 		jopts = append(jopts, WithPlaceJobAIToolsDetection())
+	}
+
+	if j.NoWebsiteOnly {
+		jopts = append(jopts, WithPlaceJobNoWebsiteOnly())
 	}
 
 	return jopts

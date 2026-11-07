@@ -195,6 +195,9 @@ components:
         detect_ai_tools:
           type: boolean
           description: Visit each website and detect AI chat and AI phone agent tools (not available in fast mode)
+        no_website_only:
+          type: boolean
+          description: Keep only businesses without a website of their own (no website, or only a social-media or directory page). Skips email and AI detection.
         max_time:
           type: integer
         proxies:
@@ -249,6 +252,9 @@ components:
         detect_ai_tools:
           type: boolean
           description: Visit each website and detect AI chat and AI phone agent tools (not available in fast mode)
+        no_website_only:
+          type: boolean
+          description: Keep only businesses without a website of their own (no website, or only a social-media or directory page). Skips email and AI detection.
         max_time:
           type: integer
         proxies:

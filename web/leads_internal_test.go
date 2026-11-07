@@ -63,3 +63,27 @@ func TestWriteLeadsCSVEmptyFile(t *testing.T) {
 		t.Fatalf("expected a header row, got %q", out.String())
 	}
 }
+
+func TestLeadsHasWebsiteValues(t *testing.T) {
+	if leadsColumns[hasWebsiteColumn].header != "Has Website" {
+		t.Fatalf("hasWebsiteColumn must point at Has Website, got %q", leadsColumns[hasWebsiteColumn].header)
+	}
+
+	full := "title,website\nNo Site,\nFacebook Only,https://www.facebook.com/acme\nReal Site,https://acme.com\n"
+
+	table, err := buildLeads(strings.NewReader(full), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{leadsNo, leadsSocialOnly, leadsYes}
+	for i, row := range table.Rows {
+		if row[hasWebsiteColumn] != want[i] {
+			t.Fatalf("row %d Has Website = %q, want %q", i, row[hasWebsiteColumn], want[i])
+		}
+	}
+
+	if !noOwnSite(table.Rows[0]) || !noOwnSite(table.Rows[1]) || noOwnSite(table.Rows[2]) {
+		t.Fatal("noOwnSite must flag the first two rows only")
+	}
+}

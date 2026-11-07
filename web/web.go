@@ -227,6 +227,7 @@ type formData struct {
 	Depth    int
 	Email    bool
 	DetectAI bool
+	NoSite   bool
 	Proxies  []string
 	// AuthEnabled shows the sign-out link.
 	AuthEnabled bool
@@ -387,6 +388,7 @@ func (s *Server) scrape(w http.ResponseWriter, r *http.Request) {
 
 	newJob.Data.Email = r.Form.Get("email") == checkboxOn
 	newJob.Data.DetectAITools = r.Form.Get("detectai") == checkboxOn
+	newJob.Data.NoWebsiteOnly = r.Form.Get("nowebsite") == checkboxOn
 
 	proxies := strings.Split(r.Form.Get("proxies"), "\n")
 	if len(proxies) > 0 {

@@ -48,7 +48,7 @@
                         <div class="field">
                             <label for="keywords">Search terms</label>
                             <textarea id="keywords" name="keywords" rows="4" placeholder="dentists in Austin TX&#10;plumbers in Denver CO" required>{{ .KeywordsString }}</textarea>
-                            <p class="hint">One per line, written the way you'd search in Google Maps.</p>
+                            <p class="hint">One search per line, as short keywords: <em>general contractors in Spring TX</em>. Google can't search for "no website", so use the switch below instead. Want more results? Add several related lines (e.g. roofers, remodelers, builders).</p>
                         </div>
 
                         <div class="field-row">
@@ -64,6 +64,14 @@
 
                         <fieldset class="option-group">
                             <legend>Extra details</legend>
+                            <label class="toggle" for="nowebsite">
+                                <input type="checkbox" id="nowebsite" name="nowebsite" {{if .NoSite}}checked{{end}}>
+                                <span class="toggle-track" aria-hidden="true"></span>
+                                <span class="toggle-text">
+                                    <span class="toggle-title">Only businesses without their own website</span>
+                                    <span class="toggle-desc">Keeps businesses with no website, or only a Facebook or similar page. Skips the email and AI checks, so searches run faster.</span>
+                                </span>
+                            </label>
                             <label class="toggle" for="email">
                                 <input type="checkbox" id="email" name="email" {{if .Email}}checked{{end}}>
                                 <span class="toggle-track" aria-hidden="true"></span>
@@ -115,7 +123,7 @@
                                 <div class="field">
                                     <label for="zoom">Map zoom</label>
                                     <input type="number" id="zoom" name="zoom" value="{{.Zoom}}" min="1" max="21">
-                                    <p class="hint">1 (world) to 21 (street).</p>
+                                    <p class="hint">1 (world) to 21 (street). 15 covers a neighborhood; use 12 for a whole city.</p>
                                 </div>
                             </div>
                         </details>
@@ -128,7 +136,7 @@
                                     <span class="toggle-track" aria-hidden="true"></span>
                                     <span class="toggle-text">
                                         <span class="toggle-title">Use fast mode</span>
-                                        <span class="toggle-desc">Quicker, but needs a latitude and longitude, returns fewer details, and skips emails and AI detection.</span>
+                                        <span class="toggle-desc">Returns at most 20 businesses per search line, and needs a latitude and longitude. Leave it off for bigger lists (about 100 per line).</span>
                                     </span>
                                 </label>
                                 <div class="field">

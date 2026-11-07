@@ -2,6 +2,7 @@
 <div class="leads-panel" data-leads-panel>
     <div class="leads-toolbar">
         <input type="search" class="leads-filter" placeholder="Search these results" aria-label="Search these results" data-leads-filter>
+        <label class="leads-check"><input type="checkbox" data-leads-nosite> Only without a website</label>
         <span class="leads-count" data-leads-count data-total="{{len .Rows}}">{{len .Rows}} {{if eq (len .Rows) 1}}business{{else}}businesses{{end}}</span>
     </div>
     <div class="leads-scroll">
@@ -11,12 +12,12 @@
             </thead>
             <tbody>
             {{range .Rows}}
-                <tr>
+                <tr{{if noOwnSite .}} data-nosite{{end}}>
                 {{range $i, $v := .}}{{$h := index $.Headers $i}}
                     {{if eq $h "Website"}}<td class="col-website">{{if $v}}<a href="{{$v}}" target="_blank" rel="noopener noreferrer nofollow">{{displayURL $v}}</a>{{else}}<span class="muted">—</span>{{end}}</td>
                     {{else if eq $h "Google Maps Link"}}<td>{{if $v}}<a href="{{$v}}" target="_blank" rel="noopener noreferrer nofollow">Open map</a>{{end}}</td>
                     {{else if eq $h "AI Chat on Website"}}<td>{{if $v}}<span class="pill {{aiChatClass $v}}">{{$v}}</span>{{end}}</td>
-                    {{else if eq $h "Has Website"}}<td>{{if eq $v "No"}}<span class="pill pill-no">No</span>{{else}}{{$v}}{{end}}</td>
+                    {{else if eq $h "Has Website"}}<td>{{if ne $v "Yes"}}<span class="pill pill-maybe">{{$v}}</span>{{else}}{{$v}}{{end}}</td>
                     {{else if eq $h "Business Name"}}<td class="col-name">{{$v}}</td>
                     {{else if eq $h "Address"}}<td class="col-address">{{$v}}</td>
                     {{else if or (eq $h "Phone") (eq $h "Rating") (eq $h "Reviews")}}<td class="nowrap">{{$v}}</td>

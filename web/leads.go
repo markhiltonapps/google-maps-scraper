@@ -20,6 +20,9 @@ const leadsFormat = "leads"
 const (
 	leadsYes = "Yes"
 	leadsNo  = "No"
+	// leadsSocialOnly marks businesses whose only link is a social-media or
+	// directory page, i.e. no website of their own.
+	leadsSocialOnly = "Social page only"
 )
 
 type leadsColumn struct {
@@ -34,11 +37,14 @@ var leadsColumns = []leadsColumn{
 	{header: "Category", value: field("category")},
 	{header: "Phone", value: field("phone")},
 	{header: "Has Website", value: func(row map[string]string) string {
-		if row["website"] == "" {
+		switch {
+		case row["website"] == "":
 			return leadsNo
+		case !gmaps.IsOwnWebsiteURL(row["website"]):
+			return leadsSocialOnly
+		default:
+			return leadsYes
 		}
-
-		return leadsYes
 	}},
 	{header: "Website", value: func(row map[string]string) string { return stripTrackingParams(row["website"]) }},
 	{header: "Email", value: func(row map[string]string) string { return cleanEmailList(row["emails"]) }},

@@ -85,6 +85,7 @@ type JobData struct {
 	Depth         int           `json:"depth"`
 	Email         bool          `json:"email"`
 	DetectAITools bool          `json:"detect_ai_tools"`
+	NoWebsiteOnly bool          `json:"no_website_only"`
 	ExtraReviews  bool          `json:"extra_reviews"`
 	MaxTime       time.Duration `json:"max_time"`
 	Proxies       []string      `json:"proxies"`

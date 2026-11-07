@@ -226,6 +226,49 @@ func (e *Entry) IsWebsiteValidForEmail() bool {
 	return true
 }
 
+// nonOwnWebsiteDomains are social networks and listing sites. A business whose
+// only link on Google Maps points to one of these has no website of its own.
+var nonOwnWebsiteDomains = []string{
+	"facebook.com", "fb.com", "fb.me", "instagram.com", "twitter.com", "x.com",
+	"tiktok.com", "linkedin.com", "youtube.com", "youtu.be", "pinterest.com",
+	"whatsapp.com", "wa.me", "linktr.ee", "nextdoor.com",
+	"yelp.com", "yellowpages.com", "bbb.org", "mapquest.com", "manta.com",
+	"angi.com", "angieslist.com", "homeadvisor.com", "thumbtack.com",
+}
+
+// IsOwnWebsiteURL reports whether raw is a website of the business's own, as
+// opposed to empty or only a social-media or directory page.
+func IsOwnWebsiteURL(raw string) bool {
+	raw = strings.TrimSpace(normalizeGoogleURL(raw))
+	if raw == "" {
+		return false
+	}
+
+	if !strings.Contains(raw, "://") {
+		raw = "https://" + raw
+	}
+
+	u, err := url.Parse(raw)
+	if err != nil || u.Hostname() == "" {
+		return true
+	}
+
+	host := strings.ToLower(u.Hostname())
+
+	for _, domain := range nonOwnWebsiteDomains {
+		if host == domain || strings.HasSuffix(host, "."+domain) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// HasOwnWebsite reports whether the place links a website of its own.
+func (e *Entry) HasOwnWebsite() bool {
+	return IsOwnWebsiteURL(e.WebSite)
+}
+
 func (e *Entry) Validate() error {
 	if e.Title == "" {
 		return fmt.Errorf("title is empty")

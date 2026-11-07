@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"uuid"
 
 	"github.com/gosom/google-maps-scraper/exiter"
@@ -34,6 +35,7 @@ type SearchJob struct {
 	params                  *MapSearchParams
 	ExitMonitor             exiter.Exiter
 	WriterManagedCompletion bool
+	NoWebsiteOnly           bool
 }
 
 func NewSearchJob(params *MapSearchParams, opts ...SearchJobOptions) *SearchJob {
@@ -66,6 +68,13 @@ func NewSearchJob(params *MapSearchParams, opts ...SearchJobOptions) *SearchJob 
 func WithSearchJobExitMonitor(exitMonitor exiter.Exiter) SearchJobOptions {
 	return func(j *SearchJob) {
 		j.ExitMonitor = exitMonitor
+	}
+}
+
+// WithSearchJobNoWebsiteOnly keeps only places without a website of their own.
+func WithSearchJobNoWebsiteOnly() SearchJobOptions {
+	return func(j *SearchJob) {
+		j.NoWebsiteOnly = true
 	}
 }
 
@@ -117,6 +126,10 @@ func (j *SearchJob) Process(_ context.Context, resp *scrapemate.Response) (any, 
 		j.params.Location.Lon,
 		j.params.Location.Radius,
 	)
+
+	if j.NoWebsiteOnly {
+		entries = slices.DeleteFunc(entries, func(e *Entry) bool { return e.HasOwnWebsite() })
+	}
 
 	if j.ExitMonitor != nil {
 		j.ExitMonitor.IncrPlacesFound(len(entries))

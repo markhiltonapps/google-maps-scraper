@@ -274,3 +274,48 @@ func TestDeleteRendersClampedCurrentPage(t *testing.T) {
 		t.Fatalf("got %d rows, want 20", rows)
 	}
 }
+
+func TestScrapeFormNoWebsiteOnly(t *testing.T) {
+	for _, tt := range []struct {
+		checked string
+		want    bool
+	}{{"on", true}, {"", false}} {
+		repo := &mutableJobRepo{}
+		srv := newTestServerWithRepo(t, repo)
+
+		form := url.Values{
+			"name": {"no-site"}, "maxtime": {"4m"}, "keywords": {"contractors in Spring TX"},
+			"lang": {"en"}, "zoom": {"15"}, "radius": {"10000"}, "latitude": {"0"}, "longitude": {"0"}, "depth": {"10"},
+		}
+		if tt.checked != "" {
+			form.Set("nowebsite", tt.checked)
+		}
+
+		req := httptest.NewRequest(http.MethodPost, "/scrape", strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		rec := httptest.NewRecorder()
+		srv.scrape(rec, req)
+
+		if rec.Code != http.StatusOK || len(repo.jobs) != 1 {
+			t.Fatalf("got %d with %d jobs: %s", rec.Code, len(repo.jobs), rec.Body.String())
+		}
+
+		if got := repo.jobs[0].Data.NoWebsiteOnly; got != tt.want {
+			t.Fatalf("checkbox %q: NoWebsiteOnly = %v, want %v", tt.checked, got, tt.want)
+		}
+	}
+}
+
+func TestIndexOffersNoWebsiteOption(t *testing.T) {
+	srv := newTestServer(t, t.TempDir())
+
+	rec := httptest.NewRecorder()
+	srv.index(rec, httptest.NewRequest(http.MethodGet, "/", http.NoBody))
+
+	for _, want := range []string{`name="nowebsite"`, "at most 20 businesses"} {
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Fatalf("index missing %q", want)
+		}
+	}
+}

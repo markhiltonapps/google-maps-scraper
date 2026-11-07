@@ -151,3 +151,38 @@ type recordingSeedTracker struct{}
 func (t *recordingSeedTracker) SeedDiscovered(string, int) error {
 	return nil
 }
+
+func TestCreateSeedJobsNoWebsiteOnly(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name string
+		opts []runner.SeedJobOption
+		want bool
+	}{
+		{name: "off by default", want: false},
+		{name: "enabled", opts: []runner.SeedJobOption{runner.WithNoWebsiteOnly()}, want: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			jobs, err := runner.CreateSeedJobs(
+				false, "en", strings.NewReader("contractors in Spring TX\n"),
+				10, false, "", 15, 10000, nil, nil, false,
+				tt.opts...,
+			)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			gmapJob, ok := jobs[0].(*gmaps.GmapJob)
+			if !ok {
+				t.Fatalf("expected a *gmaps.GmapJob, got %T", jobs[0])
+			}
+
+			if gmapJob.NoWebsiteOnly != tt.want {
+				t.Fatalf("NoWebsiteOnly = %v, want %v", gmapJob.NoWebsiteOnly, tt.want)
+			}
+		})
+	}
+}

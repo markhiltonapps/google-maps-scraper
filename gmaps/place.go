@@ -25,6 +25,7 @@ type PlaceJob struct {
 	ExtractExtraReviews     bool
 	WriterManagedCompletion bool
 	DetectAITools           bool
+	NoWebsiteOnly           bool
 }
 
 func NewPlaceJob(parentID, langCode, u string, extractEmail, extraExtraReviews bool, opts ...PlaceJobOptions) *PlaceJob {
@@ -98,6 +99,13 @@ func WithPlaceJobWriterManagedCompletion() PlaceJobOptions {
 	}
 }
 
+// WithPlaceJobNoWebsiteOnly keeps only places without a website of their own.
+func WithPlaceJobNoWebsiteOnly() PlaceJobOptions {
+	return func(j *PlaceJob) {
+		j.NoWebsiteOnly = true
+	}
+}
+
 // WithPlaceJobAIToolsDetection makes the job check the place's website for
 // AI chat and AI phone agent tools.
 func WithPlaceJobAIToolsDetection() PlaceJobOptions {
@@ -167,6 +175,17 @@ func (j *PlaceJob) Process(_ context.Context, resp *scrapemate.Response) (any, [
 		}
 
 		entry.UserReviewsExtended = append(entry.UserReviewsExtended, deduped...)
+	}
+
+	if j.NoWebsiteOnly && entry.HasOwnWebsite() {
+		// Not a lead: drop it from the results without visiting its site.
+		j.UsageInResults = false
+
+		if j.ExitMonitor != nil && !j.WriterManagedCompletion {
+			j.ExitMonitor.IncrPlacesCompleted(1)
+		}
+
+		return nil, nil, nil
 	}
 
 	if (j.ExtractEmail || j.DetectAITools) && entry.IsWebsiteValidForEmail() {

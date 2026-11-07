@@ -1287,3 +1287,13 @@ body.share-page .topbar {
     font-weight: 600;
     letter-spacing: -0.02em;
 }
+
+.leads-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 400;
+    color: var(--text-muted);
+    white-space: nowrap;
+    cursor: pointer;
+}

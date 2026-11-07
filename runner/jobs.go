@@ -24,6 +24,7 @@ type seedJobConfig struct {
 	completionTracker     gmaps.CompletionTracker
 	deterministicIDs      bool
 	detectAITools         bool
+	noWebsiteOnly         bool
 }
 
 // SeedJobOption configures seed job creation.
@@ -47,6 +48,14 @@ func WithCompletionTracker(tracker gmaps.CompletionTracker) SeedJobOption {
 func WithDeterministicSeedIDs() SeedJobOption {
 	return func(cfg *seedJobConfig) {
 		cfg.deterministicIDs = true
+	}
+}
+
+// WithNoWebsiteOnly keeps only places without a website of their own
+// (including places that only link a social-media or directory page).
+func WithNoWebsiteOnly() SeedJobOption {
+	return func(cfg *seedJobConfig) {
+		cfg.noWebsiteOnly = true
 	}
 }
 
@@ -161,6 +170,10 @@ func CreateSeedJobs(
 				opts = append(opts, gmaps.WithAIToolsDetection())
 			}
 
+			if createCfg.noWebsiteOnly {
+				opts = append(opts, gmaps.WithNoWebsiteOnly())
+			}
+
 			job = gmaps.NewGmapJob(id, langCode, query, maxDepth, email, geoCoordinates, zoom, opts...)
 		} else {
 			jparams := gmaps.MapSearchParams{
@@ -180,6 +193,10 @@ func CreateSeedJobs(
 
 			if exitMonitor != nil {
 				opts = append(opts, gmaps.WithSearchJobExitMonitor(exitMonitor))
+			}
+
+			if createCfg.noWebsiteOnly {
+				opts = append(opts, gmaps.WithSearchJobNoWebsiteOnly())
 			}
 
 			searchJob := gmaps.NewSearchJob(&jparams, opts...)

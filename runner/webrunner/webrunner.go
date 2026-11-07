@@ -201,8 +201,17 @@ func (w *webrunner) scrapeJob(ctx context.Context, job *web.Job) error {
 	exitMonitor := exiter.New()
 
 	var seedOpts []runner.SeedJobOption
-	if job.Data.DetectAITools {
+
+	// Emails and AI detection only apply to websites, so they are skipped
+	// when we only want businesses without one.
+	wantEmail := job.Data.Email && !job.Data.NoWebsiteOnly
+
+	if job.Data.DetectAITools && !job.Data.NoWebsiteOnly {
 		seedOpts = append(seedOpts, runner.WithAIToolsDetection())
+	}
+
+	if job.Data.NoWebsiteOnly {
+		seedOpts = append(seedOpts, runner.WithNoWebsiteOnly())
 	}
 
 	seedJobs, err := runner.CreateSeedJobs(
@@ -210,7 +219,7 @@ func (w *webrunner) scrapeJob(ctx context.Context, job *web.Job) error {
 		job.Data.Lang,
 		strings.NewReader(strings.Join(job.Data.Keywords, "\n")),
 		job.Data.Depth,
-		job.Data.Email,
+		wantEmail,
 		coords,
 		job.Data.Zoom,
 		func() float64 {
