@@ -19,12 +19,17 @@ import (
 	"strings"
 	"time"
 	"uuid"
+
+	"github.com/gosom/google-maps-scraper/internal/sitebrief"
 )
 
 //go:embed static
 var static embed.FS
 
 const (
+	// siteBriefFormat is the download format with cleaned business details and a
+	// ready-to-paste AI website prompt for each business.
+	siteBriefFormat         = "sitebrief"
 	jobsPageLimit           = 20
 	methodNotAllowedMessage = "Method not allowed"
 	// checkboxOn is the form value browsers send for a checked checkbox.
@@ -495,6 +500,30 @@ func (s *Server) download(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	fileName := filepath.Base(filePath)
+
+	if r.URL.Query().Get("format") == siteBriefFormat {
+		// Convert fully before writing so a failure can still return an error status.
+		briefs, err := sitebrief.Build(file)
+		if err != nil {
+			http.Error(w, "Failed to build website briefs", http.StatusInternalServerError)
+
+			return
+		}
+
+		var out bytes.Buffer
+		if err := sitebrief.WriteCSV(&out, briefs); err != nil {
+			http.Error(w, "Failed to build website briefs", http.StatusInternalServerError)
+
+			return
+		}
+
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", strings.TrimSuffix(fileName, ".csv")+"-website-briefs.csv"))
+		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+
+		_, _ = out.WriteTo(w)
+
+		return
+	}
 
 	if r.URL.Query().Get("format") == leadsFormat {
 		// Convert fully before writing so a failure can still return an error status.

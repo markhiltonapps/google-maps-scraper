@@ -168,3 +168,64 @@ func TestDisplayURL(t *testing.T) {
 		}
 	}
 }
+
+func TestDownloadSiteBriefs(t *testing.T) {
+	dir := t.TempDir()
+
+	csv := "title,category,phone,address,open_hours,review_rating,review_count,user_reviews,website,place_id,link\n" +
+		"ACME ROOFING LLC,Roofing contractor,(281) 555-0101,\"12 Oak St, Spring, TX 77373\",,5.000000,0,null,,pid1,\n"
+	if err := os.WriteFile(filepath.Join(dir, doneJobID+".csv"), []byte(csv), 0o600); err != nil {
+		t.Fatalf("write csv: %v", err)
+	}
+
+	srv := newTestServer(t, dir)
+
+	req := requestWithID(httptest.NewRequest(http.MethodGet, "/download?id="+doneJobID+"&format=sitebrief", http.NoBody))
+	rec := httptest.NewRecorder()
+	srv.download(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", rec.Code, rec.Body.String())
+	}
+
+	if got := rec.Header().Get("Content-Disposition"); !strings.HasSuffix(got, "-website-briefs.csv") {
+		t.Fatalf("Content-Disposition = %q", got)
+	}
+
+	body := rec.Body.String()
+	for _, want := range []string{"\ufeff", "Website Prompt", "Acme Roofing", "Act as an expert web designer"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("download missing %q", want)
+		}
+	}
+
+	if strings.Contains(body, "ACME ROOFING LLC") {
+		t.Fatal("the shouting name must be cleaned")
+	}
+}
+
+func TestDownloadSiteBriefsRejectsNonResultsFile(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, doneJobID+".csv"), []byte("a,b\n1,2\n"), 0o600); err != nil {
+		t.Fatalf("write csv: %v", err)
+	}
+
+	srv := newTestServer(t, dir)
+
+	req := requestWithID(httptest.NewRequest(http.MethodGet, "/download?id="+doneJobID+"&format=sitebrief", http.NoBody))
+	rec := httptest.NewRecorder()
+	srv.download(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("got %d, want 500", rec.Code)
+	}
+}
+
+func TestPreviewOffersWebsiteBriefs(t *testing.T) {
+	srv := newResultsTestServer(t)
+
+	rec := serveResults(t, srv, "/preview?id="+doneJobID, (*Server).previewJob)
+	if !strings.Contains(rec.Body.String(), "/download?id="+doneJobID+"&format=sitebrief") {
+		t.Fatal("preview must link to the website briefs download")
+	}
+}

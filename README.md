@@ -311,6 +311,8 @@ docker run \
 
 Then open http://localhost:8080 in your browser.
 
+**Website briefs.** Each finished search has a **Website briefs** download (in *Preview*). It turns the results into a clean spreadsheet for building demo websites: tidy names and phone numbers, readable hours, only real 4-5 star testimonials, services, and a ready-to-paste prompt for an AI website builder. Each business is marked *Ready*, *Check first* or *Skip* with plain-English notes. You can also run it from the command line on a "Full data" CSV: `go run ./cmd/sitebrief results.csv briefs.csv`.
+
 To protect the Web UI with a shared team password, set the `WEB_PASSWORD` environment variable (e.g. `-e WEB_PASSWORD=...` with Docker). Visitors then sign in once (sessions last 30 days); results share links (`/share/<job-id>`) and their downloads stay public, and the REST API accepts the same password via HTTP basic auth.
 
 Or download the [binary release](https://github.com/gosom/google-maps-scraper/releases) for your platform.
