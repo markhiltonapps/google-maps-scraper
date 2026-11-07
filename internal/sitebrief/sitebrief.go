@@ -29,6 +29,9 @@ const (
 	minGoodRating       = 4.0
 	minReviewsForSkip   = 2
 	thinReviewCount     = 2
+	// largeBusinessReviews is the review count above which a business with no
+	// website listed is probably big enough to have one elsewhere.
+	largeBusinessReviews = 200
 )
 
 var addressCityState = regexp.MustCompile(`,\s*([^,]+),\s*([A-Z]{2})\s+\d{5}`)
@@ -303,6 +306,12 @@ func fromRecord(field func(string) string) Brief {
 
 	if count > 0 && count <= thinReviewCount && len(b.Testimonials) > 0 {
 		note(fmt.Sprintf("Only %d review: thin social proof.", count))
+	}
+
+	if count >= largeBusinessReviews {
+		note(fmt.Sprintf("Large business (%d Google reviews): it probably has a website that Google doesn't list. Search its name on Google before building.", count))
+
+		check = true
 	}
 
 	// Name, category and website checks.

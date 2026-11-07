@@ -413,3 +413,24 @@ func TestMapsLinkFallback(t *testing.T) {
 	require.Equal(t, "https://www.google.com/maps/search/?api=1&query=B+Co+1+Main+St", mapsLink("B Co", "", "", "1 Main St"))
 	require.Empty(t, mapsLink("", "", "", ""))
 }
+
+func TestLargeBusinessIsFlagged(t *testing.T) {
+	t.Parallel()
+
+	good := reviewsJSON(t, rv("Pat Lee", 5, "Wonderful work, finished early and spotless.", "a year ago"))
+
+	statusOf := func(count string) (Status, []string) {
+		briefs, err := Build(strings.NewReader(csvOf(t, []string{"Big Co", "Contractor", "(281) 555-0101", "1 Main St, Spring, TX 77373", "", "4.800000", count, good, "", "pid", ""})))
+		require.NoError(t, err)
+
+		return briefs[0].Status, briefs[0].Notes
+	}
+
+	status, notes := statusOf("2513")
+	require.Equal(t, StatusCheckFirst, status)
+	require.Contains(t, strings.Join(notes, "\n"), "Large business (2513 Google reviews)")
+
+	status, notes = statusOf("40")
+	require.Equal(t, StatusReady, status)
+	require.NotContains(t, strings.Join(notes, "\n"), "Large business")
+}
